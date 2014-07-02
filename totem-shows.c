@@ -78,6 +78,7 @@ set_media_content (GtkBuilder *builder,
   GtkWidget *window, *poster, *widget;
   GdkPixbuf *pixbuf;
   const gchar *show, *overview, *title;
+  GDateTime *released;
   gchar *str;
   GrlMediaVideo *video;
 
@@ -101,6 +102,14 @@ set_media_content (GtkBuilder *builder,
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "summary-data"));
   overview = grl_media_get_description (GRL_MEDIA (video));
   gtk_label_set_text (GTK_LABEL (widget), overview);
+
+  widget = GTK_WIDGET (gtk_builder_get_object (builder, "released-data"));
+  released = grl_media_get_publication_date (media);
+  if (released != NULL) {
+    str = g_date_time_format (released, "%Y");
+    gtk_label_set_text (GTK_LABEL (widget), str);
+    g_free (str);
+  }
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "cast-data"));
   str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_PERFORMER);
@@ -158,6 +167,9 @@ static void
 build_ui (OperationSpec *os)
 {
   GtkWidget *widget;
+  GtkCssProvider *css;
+  gboolean succeed;
+  GError *err = NULL;
 
   if (os->builder != NULL)
     return;
@@ -165,6 +177,18 @@ build_ui (OperationSpec *os)
   /* Construct a GtkBuilder instance and load our UI description */
   os->builder = gtk_builder_new ();
   gtk_builder_add_from_file (os->builder, "totem-shows.glade", NULL);
+
+  /* FIXME: CSS is not working */
+  css = gtk_css_provider_get_default ();
+  succeed = gtk_css_provider_load_from_path (css, "totem-shows.css", &err);
+  if (succeed) {
+    GtkStyleContext *context = gtk_style_context_new ();
+    gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (css), 10);
+    g_message ("CSS Loaded");
+  } else {
+    g_warning ("Can't load css: %s", err->message);
+    g_error_free (err);
+  }
 
   /* Connect signal handlers to the constructed widgets. */
   widget = GTK_WIDGET (gtk_builder_get_object (os->builder, "main-window"));
