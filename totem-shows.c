@@ -33,6 +33,17 @@ static GrlRegistry *registry;
 static GrlKeyID tvdb_poster_key;
 static GrlKeyID guest_stars_key;
 
+typedef struct _OperationSpec {
+  GList      *list_medias;
+  GtkBuilder *builder;
+  guint       index_media;
+} OperationSpec;
+
+typedef struct _FetchOperation {
+  GrlMedia      *media;
+  OperationSpec *os;
+} FetchOperation;
+
 gchar *
 get_data_from_media (GrlData *data,
                      GrlKeyID key)
@@ -60,27 +71,25 @@ get_data_from_media (GrlData *data,
 }
 
 static void
-build_ui (GrlMedia *media,
-          gchar    *img_path)
+set_media_content (GtkBuilder *builder,
+                   GrlMedia   *media)
 {
-  GtkBuilder *builder;
+  gchar *img_path;
   GtkWidget *window, *poster, *widget;
   GdkPixbuf *pixbuf;
-  const gchar *show, *overview;
+  const gchar *show, *overview, *title;
   gchar *str;
   GrlMediaVideo *video;
 
   video = GRL_MEDIA_VIDEO (media);
+  title = grl_media_get_title (media);
+  g_message ("set_media_content -> %s", title);
   show = grl_media_video_get_show (video);
-
-  /* Construct a GtkBuilder instance and load our UI description */
-  builder = gtk_builder_new ();
-  gtk_builder_add_from_file (builder, "totem-shows.glade", NULL);
+  img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
 
   /* Connect signal handlers to the constructed widgets. */
-  window = GTK_WIDGET (gtk_builder_get_object (builder, "main-window"));
-  gtk_window_set_title (GTK_WINDOW (window), show);
-  g_signal_connect (window, "destroy", G_CALLBACK (gtk_main_quit), NULL);
+  widget = GTK_WIDGET (gtk_builder_get_object (builder, "showname-label"));
+  gtk_label_set_text (GTK_LABEL (widget), show);
 
   poster = gtk_image_new_from_file (img_path);
   pixbuf = gtk_image_get_pixbuf (GTK_IMAGE (poster));
@@ -90,60 +99,128 @@ build_ui (GrlMedia *media,
   g_clear_pointer (&img_path, g_free);
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "summary-data"));
-  overview = grl_media_get_description (media);
+  overview = grl_media_get_description (GRL_MEDIA (video));
   gtk_label_set_text (GTK_LABEL (widget), overview);
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "cast-data"));
-  str = get_data_from_media (GRL_DATA (media), GRL_METADATA_KEY_PERFORMER);
+  str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_PERFORMER);
   gtk_label_set_text (GTK_LABEL (widget), str);
   g_clear_pointer (&str, g_free);
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "directors-data"));
-  str = get_data_from_media (GRL_DATA (media), GRL_METADATA_KEY_DIRECTOR);
+  str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_DIRECTOR);
   gtk_label_set_text (GTK_LABEL (widget), str);
   g_clear_pointer (&str, g_free);
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "guests-data"));
-  str = get_data_from_media (GRL_DATA (media), guest_stars_key);
+  str = get_data_from_media (GRL_DATA (video), guest_stars_key);
   if (str != NULL) {
     gtk_label_set_text (GTK_LABEL (widget), str);
     g_clear_pointer (&str, g_free);
   }
 
+  window = GTK_WIDGET (gtk_builder_get_object (builder, "main-window"));
   gtk_widget_show_all (window);
 }
 
+static gboolean
+on_left (GtkStatusIcon *status_icon,
+         GdkEvent      *event,
+         gpointer       user_data)
+{
+  OperationSpec *os;
+  GList *it;
+
+  os = (OperationSpec *) user_data;
+  os->index_media = (os->index_media == 0) ?
+                     g_list_length (os->list_medias) - 1 : os->index_media - 1;
+
+  it = g_list_nth (os->list_medias, os->index_media);
+  set_media_content (os->builder, GRL_MEDIA (it->data));
+}
+
+static gboolean
+on_right (GtkStatusIcon *status_icon,
+          GdkEvent      *event,
+          gpointer       user_data)
+{
+  OperationSpec *os;
+  GList *it;
+
+  os = (OperationSpec *) user_data;
+  os->index_media = (os->index_media + 1) % g_list_length (os->list_medias);
+
+  it = g_list_nth (os->list_medias, os->index_media);
+  set_media_content (os->builder, GRL_MEDIA (it->data));
+}
+
 static void
-fetch_poster_done (GObject *source_object,
+build_ui (OperationSpec *os)
+{
+  GtkWidget *widget;
+
+  if (os->builder != NULL)
+    return;
+
+  /* Construct a GtkBuilder instance and load our UI description */
+  os->builder = gtk_builder_new ();
+  gtk_builder_add_from_file (os->builder, "totem-shows.glade", NULL);
+
+  /* Connect signal handlers to the constructed widgets. */
+  widget = GTK_WIDGET (gtk_builder_get_object (os->builder, "main-window"));
+  gtk_window_set_title (GTK_WINDOW (widget), "Totem TV Shows");
+  g_signal_connect (widget, "destroy", G_CALLBACK (gtk_main_quit), NULL);
+
+  widget = GTK_WIDGET (gtk_builder_get_object (os->builder, "button-left"));
+  g_signal_connect (widget, "clicked",
+                    G_CALLBACK (on_left), os);
+
+  widget = GTK_WIDGET (gtk_builder_get_object (os->builder, "button-right"));
+  g_signal_connect (widget, "clicked",
+                    G_CALLBACK (on_right), os);
+
+  /* First Element */
+  g_message ("size of list: %d", g_list_length (os->list_medias));
+  os->index_media = 0;
+  set_media_content (os->builder,
+                     GRL_MEDIA (g_list_first (os->list_medias)->data));
+}
+
+static void
+fetch_poster_done (GObject      *source_object,
                    GAsyncResult *res,
-                   gpointer user_data)
+                   gpointer      user_data)
 {
   const gchar *title;
   gchar *data, *img_path;
   gsize len;
   GError *err = NULL;
-  GrlMedia *media;
+  FetchOperation *fo;
 
   grl_net_wc_request_finish (GRL_NET_WC (source_object),
                              res, &data, &len, &err);
 
+  fo = (FetchOperation *) user_data;
+  title = grl_media_get_title (fo->media);
+  img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
+
+  if (err != NULL
+      || !g_file_set_contents(img_path, data, len, &err))
+    goto fetch_done;
+
+  g_message ("Resolve[2] ok of '%s'", title);
+  fo->os->list_medias = g_list_append (fo->os->list_medias, fo->media);
+  build_ui (fo->os);
+
+fetch_done:
   if (err != NULL) {
     g_warning ("Fetch image failed due: %s", err->message);
     g_error_free (err);
-    return;
+    g_object_unref (fo->media);
   }
-
-  media = GRL_MEDIA (user_data);
-  title = grl_media_get_title (media);
-  img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
-
-  if (!g_file_set_contents(img_path, data, len, &err)) {
-    g_warning ("Saving image failed due: %s", err->message);
-    g_error_free (err);
-    return;
-  }
-
-  build_ui (media, img_path);
+  g_clear_pointer (&img_path, g_free);
+  g_slice_free (FetchOperation, fo);
+  return;
 }
 
 static void
@@ -155,25 +232,37 @@ resolve_done (GrlSource    *source,
 {
   const gchar *title;
   gchar *img_path;
+  OperationSpec *os;
 
   if (error)
     g_error ("Resolve operation failed. Reason: %s", error->message);
 
+  os = (OperationSpec *) user_data;
+
   title = grl_media_get_title (media);
+  g_message ("Resolve[1] ok of '%s'", title);
   img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
   if (!g_file_test (img_path, G_FILE_TEST_EXISTS)) {
     GrlNetWc *wc;
     const gchar *url;
+    FetchOperation *fo;
 
     url = grl_data_get_string (GRL_DATA (media), tvdb_poster_key);
     wc = grl_net_wc_new ();
+    fo = g_slice_new0 (FetchOperation);
+    fo->media = media;
+    fo->os = os;
 
     GRL_DEBUG ("url[1] %s", url);
-    grl_net_wc_request_async (wc, url, NULL, fetch_poster_done, media);
+    grl_net_wc_request_async (wc, url, NULL, fetch_poster_done, fo);
     g_object_unref (wc);
     g_free (img_path);
-  } else
-    build_ui (media, img_path);
+  } else {
+    g_free (img_path);
+    g_message ("GoGo build_ui of '%s'", title);
+    os->list_medias = g_list_append (os->list_medias, media);
+    build_ui (os);
+  }
 }
 
 static void
@@ -186,6 +275,7 @@ resolve_urls (gint   argc,
   GList *keys;
   GrlCaps *caps;
   gint i;
+  OperationSpec *os;
 
   source = grl_registry_lookup_source (registry, THETVDB_ID);
   g_assert (source != NULL);
@@ -208,8 +298,10 @@ resolve_urls (gint   argc,
                                     tvdb_poster_key,
                                     guest_stars_key,
                                     GRL_METADATA_KEY_INVALID);
+
+  os = g_slice_new0 (OperationSpec);
   for (i = 1; i < argc; i++) {
-    g_print ("-> %s\n", argv[1]);
+    g_print ("-> %s\n", argv[i]);
     video = GRL_MEDIA_VIDEO (grl_media_video_new ());
     grl_media_set_url (GRL_MEDIA (video), argv[i]);
     grl_source_resolve (source,
@@ -217,7 +309,7 @@ resolve_urls (gint   argc,
                         keys,
                         options,
                         resolve_done,
-                        NULL);
+                        os);
   }
   g_object_unref (options);
   g_object_unref (caps);
