@@ -295,10 +295,11 @@
                   <object class="GtkLabel" id="runtime-header">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="halign">start</property>
+                    <property name="halign">end</property>
                     <property name="valign">start</property>
+                    <property name="margin_right">5</property>
                     <property name="xalign">0</property>
-                    <property name="label" translatable="yes">Runtime:</property>
+                    <property name="label" translatable="yes">Runtime</property>
                     <property name="justify">right</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -315,6 +316,7 @@
                     <property name="can_focus">False</property>
                     <property name="halign">start</property>
                     <property name="valign">start</property>
+                    <property name="margin_left">5</property>
                     <property name="label" translatable="yes">50 min</property>
                   </object>
                   <packing>
@@ -328,6 +330,7 @@
                     <property name="can_focus">False</property>
                     <property name="halign">start</property>
                     <property name="valign">start</property>
+                    <property name="margin_left">5</property>
                     <property name="label" translatable="yes">10/05/2014</property>
                     <property name="angle">0.0099999997764825821</property>
                   </object>
@@ -340,10 +343,11 @@
                   <object class="GtkLabel" id="released-header">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="halign">start</property>
+                    <property name="halign">end</property>
                     <property name="valign">start</property>
+                    <property name="margin_right">5</property>
                     <property name="xalign">0</property>
-                    <property name="label" translatable="yes">Released:</property>
+                    <property name="label" translatable="yes">Released</property>
                     <property name="justify">right</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -376,6 +380,7 @@
               <object class="GtkLabel" id="showname-label">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="halign">baseline</property>
                 <property name="hexpand">True</property>
                 <property name="label" translatable="yes">label</property>
               </object>
