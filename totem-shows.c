@@ -23,6 +23,7 @@
 #include <grilo.h>
 #include <net/grl-net.h>
 #include <gtk/gtk.h>
+#include <string.h>
 
 #define THETVDB_ID           "grl-thetvdb"
 #define TOSO_API_KEY         "3F476CEF2FBD0FB0"
@@ -289,6 +290,36 @@ resolve_done (GrlSource    *source,
   }
 }
 
+/* check_input_file
+ * We accept file-path or tracker-urls.
+ */
+gchar *
+check_input_file (const gchar *input)
+{
+  gchar *filepath;
+  gchar *url = NULL;
+
+  if (input == NULL)
+    return;
+
+  if (strlen (input) > 8
+      && g_ascii_strncasecmp ("file://", input, 7) == 0)
+    /* already a url, check if the file exists */
+    filepath = g_uri_unescape_string (input + 7, NULL);
+  else
+    filepath = g_uri_unescape_string (input, NULL);
+
+  if (g_file_test (filepath, G_FILE_TEST_EXISTS)) {
+    gchar *filepath_escape = g_uri_escape_string (filepath, "/", FALSE);
+    url = g_strdup_printf ("file://%s", filepath_escape);
+    g_free (filepath_escape);
+  } else
+    g_print ("File not found: %s \n", filepath);
+
+  g_free (filepath);
+  return url;
+}
+
 static void
 resolve_urls (gint   argc,
               gchar *argv[])
@@ -325,16 +356,23 @@ resolve_urls (gint   argc,
 
   os = g_slice_new0 (OperationSpec);
   for (i = 1; i < argc; i++) {
-    g_print ("-> %s\n", argv[i]);
+    gchar *tracker_url;
+
+    tracker_url = check_input_file (argv[i]);
+    if (tracker_url == NULL)
+      continue;
+
     video = GRL_MEDIA_VIDEO (grl_media_video_new ());
-    grl_media_set_url (GRL_MEDIA (video), argv[i]);
+    grl_media_set_url (GRL_MEDIA (video), tracker_url);
     grl_source_resolve (source,
                         GRL_MEDIA (video),
                         keys,
                         options,
                         resolve_done,
                         os);
+    g_free (tracker_url);
   }
+
   g_object_unref (options);
   g_object_unref (caps);
   g_list_free (keys);
