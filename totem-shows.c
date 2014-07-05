@@ -28,7 +28,7 @@
 #define THETVDB_ID           "grl-thetvdb"
 #define TOSO_API_KEY         "3F476CEF2FBD0FB0"
 
-//static gint num_tests;
+static gint gbl_num_tests;
 
 static GrlRegistry *registry;
 static GrlKeyID tvdb_poster_key;
@@ -300,6 +300,18 @@ resolve_done (GrlSource    *source,
   os = (OperationSpec *) user_data;
 
   title = grl_media_get_title (media);
+  if (title == NULL) {
+    g_warning ("Can't find metdata from media with url: %s",
+               grl_media_get_url (media));
+    g_object_unref (media);
+
+    gbl_num_tests--;
+    if (gbl_num_tests == 0)
+      gtk_main_quit ();
+
+    return;
+  }
+
   g_message ("Resolve[1] ok of '%s'", title);
   img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
   if (!g_file_test (img_path, G_FILE_TEST_EXISTS)) {
@@ -366,6 +378,7 @@ resolve_urls (gint   argc,
   gint i;
   OperationSpec *os;
 
+  gbl_num_tests = 0;
   source = grl_registry_lookup_source (registry, THETVDB_ID);
   g_assert (source != NULL);
 
@@ -396,6 +409,7 @@ resolve_urls (gint   argc,
     if (tracker_url == NULL)
       continue;
 
+    gbl_num_tests++;
     video = GRL_MEDIA_VIDEO (grl_media_video_new ());
     grl_media_set_url (GRL_MEDIA (video), tracker_url);
     grl_source_resolve (source,
