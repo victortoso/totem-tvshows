@@ -133,6 +133,28 @@ set_media_content (GtkBuilder *builder,
   gtk_widget_show_all (window);
 }
 
+static void
+check_ui (OperationSpec *os)
+{
+  gint len = g_list_length (os->list_medias);
+  gint index = os->index_media;
+  GtkWidget *left_arrow, *right_arrow;
+
+  /* Connect signal handlers to the constructed widgets. */
+  left_arrow = GTK_WIDGET (gtk_builder_get_object (os->builder, "button-left"));
+  right_arrow = GTK_WIDGET (gtk_builder_get_object (os->builder, "button-right"));
+
+  if (index == 0)
+    gtk_widget_set_visible (left_arrow, FALSE);
+  else
+    gtk_widget_set_visible (left_arrow, TRUE);
+
+  if (index == len - 1)
+    gtk_widget_set_visible (right_arrow, FALSE);
+  else if (len > 1)
+    gtk_widget_set_visible (right_arrow, TRUE);
+}
+
 static gboolean
 on_left (GtkStatusIcon *status_icon,
          GdkEvent      *event,
@@ -147,6 +169,7 @@ on_left (GtkStatusIcon *status_icon,
 
   it = g_list_nth (os->list_medias, os->index_media);
   set_media_content (os->builder, GRL_MEDIA (it->data));
+  check_ui (os);
 }
 
 static gboolean
@@ -162,6 +185,7 @@ on_right (GtkStatusIcon *status_icon,
 
   it = g_list_nth (os->list_medias, os->index_media);
   set_media_content (os->builder, GRL_MEDIA (it->data));
+  check_ui (os);
 }
 
 static void
@@ -209,6 +233,18 @@ build_ui (OperationSpec *os)
   os->index_media = 0;
   set_media_content (os->builder,
                      GRL_MEDIA (g_list_first (os->list_medias)->data));
+  check_ui (os);
+}
+
+static void
+add_media_to_ui (OperationSpec *os, GrlMedia *media)
+{
+  os->list_medias = g_list_append (os->list_medias, media);
+
+  if (os->builder == NULL)
+    build_ui (os);
+  else
+    check_ui (os);
 }
 
 static void
@@ -234,8 +270,7 @@ fetch_poster_done (GObject      *source_object,
     goto fetch_done;
 
   g_message ("Resolve[2] ok of '%s'", title);
-  fo->os->list_medias = g_list_append (fo->os->list_medias, fo->media);
-  build_ui (fo->os);
+  add_media_to_ui (fo->os, fo->media);
 
 fetch_done:
   if (err != NULL) {
@@ -285,8 +320,7 @@ resolve_done (GrlSource    *source,
   } else {
     g_free (img_path);
     g_message ("GoGo build_ui of '%s'", title);
-    os->list_medias = g_list_append (os->list_medias, media);
-    build_ui (os);
+    add_media_to_ui (os, media);
   }
 }
 
