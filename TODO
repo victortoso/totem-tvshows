@@ -1,0 +1,15 @@
+1-) Background of showname should be darker.
+2-) Scroll in the texts or in the whole center (below buttons and showname label)
+
+*Trouble*
+
+I can make CSS work but can't set individual id of a Widget.
+#works
+GtkLabel {
+  color: #ff00aa;
+}
+
+#does not work
+GtkLabel #showname-label {
+  color: #ff00aa;
+}
