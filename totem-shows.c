@@ -203,17 +203,24 @@ build_ui (OperationSpec *os)
   os->builder = gtk_builder_new ();
   gtk_builder_add_from_file (os->builder, "totem-shows.glade", NULL);
 
-  /* FIXME: CSS is not working */
-  css = gtk_css_provider_get_default ();
+  css = gtk_css_provider_new ();
   succeed = gtk_css_provider_load_from_path (css, "totem-shows.css", &err);
   if (succeed) {
-    GtkStyleContext *context = gtk_style_context_new ();
-    gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (css), 10);
+    GdkDisplay *display;
+    GdkScreen *screen;
+
+    display = gdk_display_get_default ();
+    screen = gdk_display_get_default_screen (display);
+    gtk_style_context_add_provider_for_screen (screen,
+                                               GTK_STYLE_PROVIDER (css),
+                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
     g_message ("CSS Loaded");
   } else {
     g_warning ("Can't load css: %s", err->message);
     g_error_free (err);
   }
+  g_object_unref (css);
 
   /* Connect signal handlers to the constructed widgets. */
   widget = GTK_WIDGET (gtk_builder_get_object (os->builder, "main-window"));

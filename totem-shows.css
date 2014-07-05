@@ -1,11 +1,3 @@
-GtkGrid#upper-grid {
-  background-color: #f0a810;
-}
-
-GtkLabel {
-  color: #ffaa33;
-}
-
-GtkLabel #summary-data {
-  color: #aa33ff;
+.summary-data {
+  font-weight: bold;
 }
