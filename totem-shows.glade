@@ -3,9 +3,10 @@
 <interface>
   <requires lib="gtk+" version="3.12"/>
   <object class="GtkWindow" id="main-window">
+    <property name="app_paintable">True</property>
     <property name="can_focus">False</property>
-    <property name="halign">start</property>
-    <property name="valign">start</property>
+    <property name="hexpand">False</property>
+    <property name="vexpand">False</property>
     <property name="window_position">center</property>
     <property name="default_width">700</property>
     <property name="default_height">600</property>
@@ -15,12 +16,12 @@
       <object class="GtkGrid" id="main-grid">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="halign">center</property>
-        <property name="valign">center</property>
         <property name="margin_left">10</property>
         <property name="margin_right">10</property>
         <property name="margin_top">10</property>
         <property name="margin_bottom">10</property>
+        <property name="hexpand">True</property>
+        <property name="vexpand">True</property>
         <property name="column_spacing">10</property>
         <child>
           <object class="GtkGrid" id="right-grid">
@@ -327,7 +328,6 @@
               <object class="GtkLabel" id="showname-label">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="halign">baseline</property>
                 <property name="hexpand">True</property>
                 <property name="label" translatable="yes">label</property>
               </object>
