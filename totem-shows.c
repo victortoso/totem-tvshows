@@ -32,7 +32,6 @@ static gint gbl_num_tests;
 
 static GrlRegistry *registry;
 static GrlKeyID tvdb_poster_key;
-static GrlKeyID guest_stars_key;
 
 typedef struct _OperationSpec {
   GList      *list_medias;
@@ -121,13 +120,6 @@ set_media_content (GtkBuilder *builder,
   str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_DIRECTOR);
   gtk_label_set_text (GTK_LABEL (widget), str);
   g_clear_pointer (&str, g_free);
-
-  widget = GTK_WIDGET (gtk_builder_get_object (builder, "guests-data"));
-  str = get_data_from_media (GRL_DATA (video), guest_stars_key);
-  if (str != NULL) {
-    gtk_label_set_text (GTK_LABEL (widget), str);
-    g_clear_pointer (&str, g_free);
-  }
 }
 
 static void
@@ -383,7 +375,6 @@ resolve_urls (gchar         *strv[],
   grl_operation_options_set_flags (options, GRL_RESOLVE_FULL);
 
   tvdb_poster_key = grl_registry_lookup_metadata_key (registry, "thetvdb-poster");
-  guest_stars_key = grl_registry_lookup_metadata_key (registry, "thetvdb-guest-stars");
 
   keys = grl_metadata_key_list_new (GRL_METADATA_KEY_SHOW,
                                     GRL_METADATA_KEY_SEASON,
@@ -394,7 +385,6 @@ resolve_urls (gchar         *strv[],
                                     GRL_METADATA_KEY_DIRECTOR,
                                     GRL_METADATA_KEY_PUBLICATION_DATE,
                                     tvdb_poster_key,
-                                    guest_stars_key,
                                     GRL_METADATA_KEY_INVALID);
 
   strv_len = g_strv_length (strv);
