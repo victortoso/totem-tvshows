@@ -128,9 +128,6 @@ set_media_content (GtkBuilder *builder,
     gtk_label_set_text (GTK_LABEL (widget), str);
     g_clear_pointer (&str, g_free);
   }
-
-  window = GTK_WIDGET (gtk_builder_get_object (builder, "main-window"));
-  gtk_widget_show_all (window);
 }
 
 static void
@@ -149,9 +146,9 @@ check_ui (OperationSpec *os)
   else
     gtk_widget_set_visible (left_arrow, TRUE);
 
-  if (index == len - 1)
+  if (len <= 1 || index == len - 1)
     gtk_widget_set_visible (right_arrow, FALSE);
-  else if (len > 1)
+  else
     gtk_widget_set_visible (right_arrow, TRUE);
 }
 
@@ -188,38 +185,43 @@ on_right (GtkStatusIcon *status_icon,
   check_ui (os);
 }
 
-static void
-build_ui (OperationSpec *os)
+/* Creates an empty UI. When grilo's resolve callback is called,
+ * the UI will receive the data for the new medias. */
+static OperationSpec *
+build_ui (void)
 {
+  GdkDisplay *display;
+  GdkScreen *screen;
   GtkWidget *widget;
   GtkCssProvider *css;
   gboolean succeed;
   GError *err = NULL;
+  OperationSpec *os;
 
-  if (os->builder != NULL)
-    return;
+  os = g_slice_new0 (OperationSpec);
+  os->list_medias = NULL;
 
   /* Construct a GtkBuilder instance and load our UI description */
   os->builder = gtk_builder_new ();
-  gtk_builder_add_from_file (os->builder, "totem-shows.glade", NULL);
+  gtk_builder_add_from_file (os->builder, "totem-shows.ui", NULL);
 
+  /* FIXME:
+   * Let's not use CSS for now
+   *
   css = gtk_css_provider_new ();
   succeed = gtk_css_provider_load_from_path (css, "totem-shows.css", &err);
-  if (succeed) {
-    GdkDisplay *display;
-    GdkScreen *screen;
-
-    display = gdk_display_get_default ();
-    screen = gdk_display_get_default_screen (display);
-    gtk_style_context_add_provider_for_screen (screen,
-                                               GTK_STYLE_PROVIDER (css),
-                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
-    g_message ("CSS Loaded");
-  } else {
+  if (!succeed) {
     g_warning ("Can't load css: %s", err->message);
     g_error_free (err);
   }
+  */
+
+  display = gdk_display_get_default ();
+  screen = gdk_display_get_default_screen (display);
+  gtk_style_context_add_provider_for_screen (screen,
+                                             GTK_STYLE_PROVIDER (css),
+                                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_message ("CSS Loaded");
   g_object_unref (css);
 
   /* Connect signal handlers to the constructed widgets. */
@@ -235,23 +237,22 @@ build_ui (OperationSpec *os)
   g_signal_connect (widget, "clicked",
                     G_CALLBACK (on_right), os);
 
-  /* First Element */
-  g_message ("size of list: %d", g_list_length (os->list_medias));
   os->index_media = 0;
-  set_media_content (os->builder,
-                     GRL_MEDIA (g_list_first (os->list_medias)->data));
   check_ui (os);
+
+  widget = GTK_WIDGET (gtk_builder_get_object (os->builder, "main-window"));
+  gtk_widget_show_all (widget);
+  return os;
 }
 
 static void
 add_media_to_ui (OperationSpec *os, GrlMedia *media)
 {
-  os->list_medias = g_list_append (os->list_medias, media);
+  if (os->list_medias == NULL)
+    set_media_content (os->builder, media);
 
-  if (os->builder == NULL)
-    build_ui (os);
-  else
-    check_ui (os);
+  os->list_medias = g_list_append (os->list_medias, media);
+  check_ui (os);
 }
 
 static void
@@ -273,7 +274,7 @@ fetch_poster_done (GObject      *source_object,
   img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
 
   if (err != NULL
-      || !g_file_set_contents(img_path, data, len, &err))
+      || !g_file_set_contents (img_path, data, len, &err))
     goto fetch_done;
 
   g_message ("Resolve[2] ok of '%s'", title);
@@ -314,6 +315,7 @@ resolve_done (GrlSource    *source,
 
     gbl_num_tests--;
     if (gbl_num_tests == 0)
+      /* If all Medias failed. Exit. */
       gtk_main_quit ();
 
     return;
@@ -338,7 +340,7 @@ resolve_done (GrlSource    *source,
     g_free (img_path);
   } else {
     g_free (img_path);
-    g_message ("GoGo build_ui of '%s'", title);
+    g_message ("go go build ui for '%s'", title);
     add_media_to_ui (os, media);
   }
 }
@@ -349,41 +351,28 @@ resolve_done (GrlSource    *source,
 gchar *
 check_input_file (const gchar *input)
 {
-  gchar *filepath;
-  gchar *url = NULL;
+  GFile *file;
+  gchar *uri;
 
   if (input == NULL)
     return;
 
-  if (strlen (input) > 8
-      && g_ascii_strncasecmp ("file://", input, 7) == 0)
-    /* already a url, check if the file exists */
-    filepath = g_uri_unescape_string (input + 7, NULL);
-  else
-    filepath = g_uri_unescape_string (input, NULL);
-
-  if (g_file_test (filepath, G_FILE_TEST_EXISTS)) {
-    gchar *filepath_escape = g_uri_escape_string (filepath, "/", FALSE);
-    url = g_strdup_printf ("file://%s", filepath_escape);
-    g_free (filepath_escape);
-  } else
-    g_print ("File not found: %s \n", filepath);
-
-  g_free (filepath);
-  return url;
+  file = g_file_new_for_commandline_arg (input);
+  uri = g_file_get_uri (file);
+  g_object_unref (file);
+  return uri;
 }
 
 static void
-resolve_urls (gint   argc,
-              gchar *argv[])
+resolve_urls (gchar         *strv[],
+              OperationSpec *os)
 {
   GrlSource *source;
   GrlMediaVideo *video;
   GrlOperationOptions *options;
   GList *keys;
   GrlCaps *caps;
-  gint i;
-  OperationSpec *os;
+  gint i, strv_len;
 
   gbl_num_tests = 0;
   source = grl_registry_lookup_source (registry, THETVDB_ID);
@@ -408,13 +397,15 @@ resolve_urls (gint   argc,
                                     guest_stars_key,
                                     GRL_METADATA_KEY_INVALID);
 
-  os = g_slice_new0 (OperationSpec);
-  for (i = 1; i < argc; i++) {
+  strv_len = g_strv_length (strv);
+  for (i = 0; i < strv_len; i++) {
     gchar *tracker_url;
 
-    tracker_url = check_input_file (argv[i]);
-    if (tracker_url == NULL)
+    tracker_url = check_input_file (strv[i]);
+    if (tracker_url == NULL) {
+      g_message ("IGNORED: %s", strv[i]);
       continue;
+    }
 
     gbl_num_tests++;
     video = GRL_MEDIA_VIDEO (grl_media_video_new ());
@@ -451,24 +442,61 @@ config_and_load_plugins (void)
   g_assert_no_error (error);
 }
 
+static gchar **
+read_input (gint   argc,
+            gchar *argv[])
+{
+  GError *error = NULL;
+  gchar **strv = NULL;
+  GOptionContext *context = NULL;
+  GOptionEntry entries[] = {
+    { G_OPTION_REMAINING, '\0', 0,
+      G_OPTION_ARG_FILENAME_ARRAY, &strv,
+      "List of paths to tv shows",
+      NULL },
+    { NULL }
+  };
+
+  context = g_option_context_new ("OPERATION PARAMETERS...");
+  g_option_context_add_main_entries (context, entries, NULL);
+  g_option_context_add_group (context, grl_init_get_option_group ());
+  g_option_context_set_summary (context,
+                                "\t<list of paths to vides of tv shows\n");
+  g_option_context_parse (context, &argc, &argv, &error);
+  return strv;
+}
+
 gint
 main (gint   argc,
       gchar *argv[])
 {
+  gchar **strv;
+  OperationSpec *os;
+
   gtk_init (&argc, &argv);
   grl_init (&argc, &argv);
 
-  if (argc == 1) {
-    g_print ("Need a url to a file:\n"
-             "file:///path/to/the/file.mkv\n");
-    return -1;
+  strv = read_input (argc, argv);
+  if (strv == NULL) {
+    g_critical ("No valid input.");
+    return 1;
+  }
+
+  os = build_ui ();
+  if (os == NULL) {
+    g_critical ("Can't create the UI.");
+    g_strfreev (strv);
   }
 
   config_and_load_plugins ();
-  resolve_urls (argc, argv);
+  resolve_urls (strv, os);
 
   gtk_main ();
   grl_deinit ();
+
+  g_strfreev (strv);
+  g_list_free_full (os->list_medias, g_object_unref);
+  g_slice_free (OperationSpec, os);
 
   return 0;
 }
