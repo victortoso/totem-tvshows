@@ -206,7 +206,6 @@ build_ui (void)
     g_warning ("Can't load css: %s", err->message);
     g_error_free (err);
   }
-  */
 
   display = gdk_display_get_default ();
   screen = gdk_display_get_default_screen (display);
@@ -215,6 +214,7 @@ build_ui (void)
                                              GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
   g_message ("CSS Loaded");
   g_object_unref (css);
+  */
 
   /* Connect signal handlers to the constructed widgets. */
   widget = GTK_WIDGET (gtk_builder_get_object (os->builder, "main-window"));
