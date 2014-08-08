@@ -75,7 +75,7 @@ set_media_content (GtkBuilder *builder,
                    GrlMedia   *media)
 {
   gchar *img_path;
-  GtkWidget *window, *poster, *widget;
+  GtkWidget *poster, *widget;
   GdkPixbuf *pixbuf;
   const gchar *show, *overview, *title;
   GDateTime *released;
@@ -144,7 +144,7 @@ check_ui (OperationSpec *os)
     gtk_widget_set_visible (right_arrow, TRUE);
 }
 
-static gboolean
+static void
 on_left (GtkStatusIcon *status_icon,
          GdkEvent      *event,
          gpointer       user_data)
@@ -161,7 +161,7 @@ on_left (GtkStatusIcon *status_icon,
   check_ui (os);
 }
 
-static gboolean
+static void
 on_right (GtkStatusIcon *status_icon,
           GdkEvent      *event,
           gpointer       user_data)
@@ -182,12 +182,14 @@ on_right (GtkStatusIcon *status_icon,
 static OperationSpec *
 build_ui (void)
 {
+  /* FIXME: used with CSS
   GdkDisplay *display;
   GdkScreen *screen;
-  GtkWidget *widget;
   GtkCssProvider *css;
   gboolean succeed;
   GError *err = NULL;
+  */
+  GtkWidget *widget;
   OperationSpec *os;
 
   os = g_slice_new0 (OperationSpec);
@@ -347,7 +349,7 @@ check_input_file (const gchar *input)
   gchar *uri;
 
   if (input == NULL)
-    return;
+    return NULL;
 
   file = g_file_new_for_commandline_arg (input);
   uri = g_file_get_uri (file);
