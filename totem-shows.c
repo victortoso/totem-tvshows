@@ -25,13 +25,19 @@
 #include <gtk/gtk.h>
 #include <string.h>
 
-#define THETVDB_ID           "grl-thetvdb"
-#define TOSO_API_KEY         "3F476CEF2FBD0FB0"
+#define LOCAL_METADATA_ID   "grl-local-metadata"
+
+#define THETVDB_ID    "grl-thetvdb"
+#define TOSO_API_KEY  "3F476CEF2FBD0FB0"
+
+#define TMDB_ID       "grl-tmdb"
+#define TMDB_KEY      "719b9b296835b04cd919c4bf5220828a"
 
 static gint gbl_num_tests;
 
 static GrlRegistry *registry;
-static GrlKeyID tvdb_poster_key;
+static GrlKeyID tvdb_poster_key = NULL;
+static GrlKeyID tmdb_poster_key = NULL;
 
 typedef struct _OperationSpec {
   GList      *list_medias;
@@ -286,13 +292,14 @@ fetch_done:
 }
 
 static void
-resolve_done (GrlSource    *source,
-              guint         operation_id,
-              GrlMedia     *media,
-              gpointer      user_data,
-              const GError *error)
+resolve_media_done (GrlSource    *source,
+                    guint         operation_id,
+                    GrlMedia     *media,
+                    gpointer      user_data,
+                    const GError *error)
 {
   const gchar *title;
+  const gchar *url;
   gchar *img_path;
   OperationSpec *os;
 
@@ -315,14 +322,18 @@ resolve_done (GrlSource    *source,
     return;
   }
 
-  g_message ("Resolve[1] ok of '%s'", title);
+  /* Get url to the poster of movie/series */
+  url = (grl_media_video_get_show (GRL_MEDIA_VIDEO (media)) != NULL) ?
+    grl_data_get_string (GRL_DATA (media), tvdb_poster_key) :
+    grl_data_get_string (GRL_DATA (media), tmdb_poster_key);
+
+  g_message ("POSTER URL for title '%s' is '%s'", title, url);
+
   img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
-  if (!g_file_test (img_path, G_FILE_TEST_EXISTS)) {
+  if (url != NULL && !g_file_test (img_path, G_FILE_TEST_EXISTS)) {
     GrlNetWc *wc;
-    const gchar *url;
     FetchOperation *fo;
 
-    url = grl_data_get_string (GRL_DATA (media), tvdb_poster_key);
     wc = grl_net_wc_new ();
     fo = g_slice_new0 (FetchOperation);
     fo->media = media;
@@ -334,7 +345,6 @@ resolve_done (GrlSource    *source,
     g_free (img_path);
   } else {
     g_free (img_path);
-    g_message ("go go build ui for '%s'", title);
     add_media_to_ui (os, media);
   }
 }
@@ -358,6 +368,114 @@ check_input_file (const gchar *input)
 }
 
 static void
+resolve_show (GrlMediaVideo *video,
+              OperationSpec *os)
+{
+  static GrlSource *source = NULL;
+  GrlOperationOptions *options;
+  GList *keys;
+  GrlCaps *caps;
+
+  g_message ("TV SHOW: %s", grl_media_video_get_show (video));
+
+  if (source == NULL)
+    source = grl_registry_lookup_source (registry, THETVDB_ID);
+
+  g_assert (source != NULL);
+  tvdb_poster_key = grl_registry_lookup_metadata_key (registry, "thetvdb-poster");
+  g_assert (tvdb_poster_key != GRL_METADATA_KEY_INVALID);
+
+  caps = grl_source_get_caps (source, GRL_OP_RESOLVE);
+  options = grl_operation_options_new (caps);
+  grl_operation_options_set_flags (options, GRL_RESOLVE_NORMAL);
+
+  keys = grl_metadata_key_list_new (GRL_METADATA_KEY_DESCRIPTION,
+                                    GRL_METADATA_KEY_PERFORMER,
+                                    GRL_METADATA_KEY_DIRECTOR,
+                                    GRL_METADATA_KEY_PUBLICATION_DATE,
+                                    tvdb_poster_key,
+                                    GRL_METADATA_KEY_INVALID);
+  grl_source_resolve (source,
+                      GRL_MEDIA (video),
+                      keys,
+                      options,
+                      resolve_media_done,
+                      os);
+  g_object_unref (options);
+  g_list_free (keys);
+}
+
+static void
+resolve_movie (GrlMediaVideo *video,
+               OperationSpec *os)
+{
+  static GrlSource *source = NULL;
+  GrlOperationOptions *options;
+  GList *keys;
+  GrlCaps *caps;
+
+  g_message ("MOVIE: %s", grl_media_get_title (GRL_MEDIA (video)));
+
+  if (source == NULL)
+    source = grl_registry_lookup_source (registry, TMDB_ID);
+
+  g_assert (source != NULL);
+  tmdb_poster_key = grl_registry_lookup_metadata_key (registry, "tmdb-poster");
+  g_assert (tmdb_poster_key != GRL_METADATA_KEY_INVALID);
+
+  caps = grl_source_get_caps (source, GRL_OP_RESOLVE);
+  options = grl_operation_options_new (caps);
+  grl_operation_options_set_flags (options, GRL_RESOLVE_NORMAL);
+
+  keys = grl_metadata_key_list_new (GRL_METADATA_KEY_DESCRIPTION,
+                                    GRL_METADATA_KEY_PERFORMER,
+                                    GRL_METADATA_KEY_DIRECTOR,
+                                    GRL_METADATA_KEY_PUBLICATION_DATE,
+                                    tmdb_poster_key,
+                                    GRL_METADATA_KEY_INVALID);
+  grl_source_resolve (source,
+                      GRL_MEDIA (video),
+                      keys,
+                      options,
+                      resolve_media_done,
+                      os);
+  g_object_unref (options);
+  g_list_free (keys);
+}
+
+static void
+resolve_urls_done (GrlSource    *source,
+                   guint         operation_id,
+                   GrlMedia     *media,
+                   gpointer      user_data,
+                   const GError *error)
+{
+  OperationSpec *os;
+  GrlMediaVideo *video;
+
+  if (error != NULL) {
+    g_message ("local-metadata failed: %s", error->message);
+    return;
+  }
+
+  os = (OperationSpec *) user_data;
+  video = GRL_MEDIA_VIDEO (media);
+
+  gbl_num_tests++;
+  if (grl_media_video_get_show (video) != NULL) {
+    /* resolve the tv show with the tvdb source */
+    resolve_show (video, os);
+  } else if (grl_media_get_title (media) != NULL) {
+    /* resolve the movie with the tmdb source */
+    resolve_movie (video, os);
+  } else {
+    gbl_num_tests--;
+    g_message ("local-metadata can't define it as movie or series: %s",
+               grl_media_get_url (media));
+  }
+}
+
+static void
 resolve_urls (gchar         *strv[],
               OperationSpec *os)
 {
@@ -369,24 +487,17 @@ resolve_urls (gchar         *strv[],
   gint i, strv_len;
 
   gbl_num_tests = 0;
-  source = grl_registry_lookup_source (registry, THETVDB_ID);
+  source = grl_registry_lookup_source (registry, LOCAL_METADATA_ID);
   g_assert (source != NULL);
 
   caps = grl_source_get_caps (source, GRL_OP_RESOLVE);
   options = grl_operation_options_new (caps);
-  grl_operation_options_set_flags (options, GRL_RESOLVE_FULL);
+  grl_operation_options_set_flags (options, GRL_RESOLVE_NORMAL);
 
-  tvdb_poster_key = grl_registry_lookup_metadata_key (registry, "thetvdb-poster");
-
-  keys = grl_metadata_key_list_new (GRL_METADATA_KEY_SHOW,
+  keys = grl_metadata_key_list_new (GRL_METADATA_KEY_TITLE,
+                                    GRL_METADATA_KEY_SHOW,
                                     GRL_METADATA_KEY_SEASON,
                                     GRL_METADATA_KEY_EPISODE,
-                                    GRL_METADATA_KEY_TITLE,
-                                    GRL_METADATA_KEY_DESCRIPTION,
-                                    GRL_METADATA_KEY_PERFORMER,
-                                    GRL_METADATA_KEY_DIRECTOR,
-                                    GRL_METADATA_KEY_PUBLICATION_DATE,
-                                    tvdb_poster_key,
                                     GRL_METADATA_KEY_INVALID);
 
   strv_len = g_strv_length (strv);
@@ -399,20 +510,24 @@ resolve_urls (gchar         *strv[],
       continue;
     }
 
-    gbl_num_tests++;
     video = GRL_MEDIA_VIDEO (grl_media_video_new ());
+
+    /* We want to extract all metadata from file's name */
+    grl_data_set_boolean (GRL_DATA (video),
+                          GRL_METADATA_KEY_TITLE_FROM_FILENAME,
+                          TRUE);
     grl_media_set_url (GRL_MEDIA (video), tracker_url);
+
     grl_source_resolve (source,
                         GRL_MEDIA (video),
                         keys,
                         options,
-                        resolve_done,
+                        resolve_urls_done,
                         os);
     g_free (tracker_url);
   }
 
   g_object_unref (options);
-  g_object_unref (caps);
   g_list_free (keys);
 }
 
@@ -427,6 +542,12 @@ config_and_load_plugins (void)
   /* Add API-KEY to The TVDB source */
   config = grl_config_new (THETVDB_ID, NULL);
   grl_config_set_api_key (config, TOSO_API_KEY);
+  grl_registry_add_config (registry, config, &error);
+  g_assert_no_error (error);
+
+  /* Add API-KEY to The TMDB source */
+  config = grl_config_new (TMDB_ID, NULL);
+  grl_config_set_api_key (config, TMDB_KEY);
   grl_registry_add_config (registry, config, &error);
   g_assert_no_error (error);
 
