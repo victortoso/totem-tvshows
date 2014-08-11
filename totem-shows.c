@@ -137,7 +137,9 @@ set_media_content (GtkBuilder *builder,
     is_media_show = TRUE;
 
   g_message ("set_media_content -> %s", title);
-  img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
+  img_path = g_build_filename (g_get_tmp_dir (),
+                               (show != NULL) ? show : title,
+                               NULL);
 
   /* Connect signal handlers to the constructed widgets. */
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "showname-label"));
@@ -329,7 +331,7 @@ fetch_poster_done (GObject      *source_object,
                    GAsyncResult *res,
                    gpointer      user_data)
 {
-  const gchar *title;
+  const gchar *str;
   gchar *data, *img_path;
   gsize len;
   GError *err = NULL;
@@ -339,14 +341,17 @@ fetch_poster_done (GObject      *source_object,
                              res, &data, &len, &err);
 
   fo = (FetchOperation *) user_data;
-  title = grl_media_get_title (fo->media);
-  img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
+  str = grl_media_video_get_show (GRL_MEDIA_VIDEO (fo->media));
+  if (str == NULL)
+    str = grl_media_get_title (fo->media);
+
+  img_path = g_build_filename (g_get_tmp_dir (), str, NULL);
 
   if (err != NULL
       || !g_file_set_contents (img_path, data, len, &err))
     goto fetch_done;
 
-  g_message ("Resolve[2] ok of '%s'", title);
+  g_message ("Resolve[2] ok of '%s'", str);
   add_media_to_ui (fo->os, fo->media);
 
 fetch_done:
@@ -367,6 +372,7 @@ resolve_media_done (GrlSource    *source,
                     gpointer      user_data,
                     const GError *error)
 {
+  const gchar *show;
   const gchar *title;
   const gchar *url;
   gchar *img_path;
@@ -377,8 +383,9 @@ resolve_media_done (GrlSource    *source,
 
   os = (OperationSpec *) user_data;
 
+  show = grl_media_video_get_show (GRL_MEDIA_VIDEO (media));
   title = grl_media_get_title (media);
-  if (title == NULL) {
+  if (title == NULL && show == NULL) {
     g_warning ("Can't find metdata from media with url: %s",
                grl_media_get_url (media));
     g_object_unref (media);
@@ -388,13 +395,17 @@ resolve_media_done (GrlSource    *source,
   }
 
   /* Get url to the poster of movie/series */
-  url = (grl_media_video_get_show (GRL_MEDIA_VIDEO (media)) != NULL) ?
+  url = (show != NULL) ?
     grl_data_get_string (GRL_DATA (media), tvdb_poster_key) :
     grl_data_get_string (GRL_DATA (media), tmdb_poster_key);
 
-  g_message ("POSTER URL for title '%s' is '%s'", title, url);
+  g_message ("POSTER URL for '%s' is '%s'",
+             (show != NULL) ? show : title,
+            url);
 
-  img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
+  img_path = g_build_filename (g_get_tmp_dir (),
+                               (show != NULL) ? show : title,
+                               NULL);
   if (url != NULL && !g_file_test (img_path, G_FILE_TEST_EXISTS)) {
     GrlNetWc *wc;
     FetchOperation *fo;
