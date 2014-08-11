@@ -53,6 +53,8 @@ typedef struct _FetchOperation {
 /* -------------------------------------------------------------------------- *
  * Utils functions
  * -------------------------------------------------------------------------- */
+
+/* reduce the tests counter by one and check if we reached it to 0. */
 static void
 media_failed (void)
 {
@@ -63,6 +65,8 @@ media_failed (void)
   }
 }
 
+/* For GrlKeys that have several values, return all of them in one
+ * string separated by comma; */
 gchar *
 get_data_from_media (GrlData *data,
                      GrlKeyID key)
@@ -88,6 +92,29 @@ get_data_from_media (GrlData *data,
   g_print ("[debug] %s\n", str);
   return str;
 }
+
+/* check_input_file
+ * We accept file-path or tracker-urls.
+ */
+gchar *
+check_input_file (const gchar *input)
+{
+  GFile *file;
+  gchar *uri;
+
+  if (input == NULL)
+    return NULL;
+
+  file = g_file_new_for_commandline_arg (input);
+  uri = g_file_get_uri (file);
+  g_object_unref (file);
+  return uri;
+}
+
+
+/* -------------------------------------------------------------------------- *
+ * UI functions
+ * -------------------------------------------------------------------------- */
 
 static void
 set_media_content (GtkBuilder *builder,
@@ -268,6 +295,10 @@ add_media_to_ui (OperationSpec *os, GrlMedia *media)
   check_ui (os);
 }
 
+/* -------------------------------------------------------------------------- *
+ * Interacting with Grilo
+ * -------------------------------------------------------------------------- */
+
 static void
 fetch_poster_done (GObject      *source_object,
                    GAsyncResult *res,
@@ -356,24 +387,6 @@ resolve_media_done (GrlSource    *source,
     g_free (img_path);
     add_media_to_ui (os, media);
   }
-}
-
-/* check_input_file
- * We accept file-path or tracker-urls.
- */
-gchar *
-check_input_file (const gchar *input)
-{
-  GFile *file;
-  gchar *uri;
-
-  if (input == NULL)
-    return NULL;
-
-  file = g_file_new_for_commandline_arg (input);
-  uri = g_file_get_uri (file);
-  g_object_unref (file);
-  return uri;
 }
 
 static void
@@ -539,6 +552,10 @@ resolve_urls (gchar         *strv[],
   g_object_unref (options);
   g_list_free (keys);
 }
+
+/* -------------------------------------------------------------------------- *
+ * Main
+ * -------------------------------------------------------------------------- */
 
 void
 config_and_load_plugins (void)
