@@ -50,6 +50,19 @@ typedef struct _FetchOperation {
   OperationSpec *os;
 } FetchOperation;
 
+/* -------------------------------------------------------------------------- *
+ * Utils functions
+ * -------------------------------------------------------------------------- */
+static void
+media_failed (void)
+{
+  gbl_num_tests--;
+  if (gbl_num_tests == 0) {
+    g_message ("All medias failed. Quit.");
+    gtk_main_quit ();
+  }
+}
+
 gchar *
 get_data_from_media (GrlData *data,
                      GrlKeyID key)
@@ -314,11 +327,7 @@ resolve_media_done (GrlSource    *source,
                grl_media_get_url (media));
     g_object_unref (media);
 
-    gbl_num_tests--;
-    if (gbl_num_tests == 0)
-      /* If all Medias failed. Exit. */
-      gtk_main_quit ();
-
+    media_failed ();
     return;
   }
 
@@ -461,7 +470,6 @@ resolve_urls_done (GrlSource    *source,
   os = (OperationSpec *) user_data;
   video = GRL_MEDIA_VIDEO (media);
 
-  gbl_num_tests++;
   if (grl_media_video_get_show (video) != NULL) {
     /* resolve the tv show with the tvdb source */
     resolve_show (video, os);
@@ -469,9 +477,9 @@ resolve_urls_done (GrlSource    *source,
     /* resolve the movie with the tmdb source */
     resolve_movie (video, os);
   } else {
-    gbl_num_tests--;
     g_message ("local-metadata can't define it as movie or series: %s",
                grl_media_get_url (media));
+    media_failed ();
   }
 }
 
@@ -518,6 +526,7 @@ resolve_urls (gchar         *strv[],
                           TRUE);
     grl_media_set_url (GRL_MEDIA (video), tracker_url);
 
+    gbl_num_tests++;
     grl_source_resolve (source,
                         GRL_MEDIA (video),
                         keys,
