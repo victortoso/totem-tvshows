@@ -127,16 +127,23 @@ set_media_content (GtkBuilder *builder,
   GDateTime *released;
   gchar *str;
   GrlMediaVideo *video;
+  gboolean is_media_show = FALSE;
 
   video = GRL_MEDIA_VIDEO (media);
   title = grl_media_get_title (media);
-  g_message ("set_media_content -> %s", title);
+
   show = grl_media_video_get_show (video);
+  if (show != NULL)
+    is_media_show = TRUE;
+
+  g_message ("set_media_content -> %s", title);
   img_path = g_build_filename (g_get_tmp_dir (), title, NULL);
 
   /* Connect signal handlers to the constructed widgets. */
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "showname-label"));
-  gtk_label_set_text (GTK_LABEL (widget), show);
+  (is_media_show) ?
+    gtk_label_set_text (GTK_LABEL (widget), show) :
+    gtk_label_set_text (GTK_LABEL (widget), title);
 
   poster = gtk_image_new_from_file (img_path);
   pixbuf = gtk_image_get_pixbuf (GTK_IMAGE (poster));
@@ -147,25 +154,43 @@ set_media_content (GtkBuilder *builder,
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "summary-data"));
   overview = grl_media_get_description (GRL_MEDIA (video));
-  gtk_label_set_text (GTK_LABEL (widget), overview);
+  if (overview != NULL) {
+    gtk_widget_set_visible (widget, TRUE);
+    gtk_label_set_text (GTK_LABEL (widget), overview);
+  } else {
+    gtk_widget_set_visible (widget, FALSE);
+  }
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "released-data"));
   released = grl_media_get_publication_date (media);
   if (released != NULL) {
+    gtk_widget_set_visible (widget, TRUE);
     str = g_date_time_format (released, "%Y");
     gtk_label_set_text (GTK_LABEL (widget), str);
     g_free (str);
+  } else {
+    gtk_widget_set_visible (widget, FALSE);
   }
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "cast-data"));
   str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_PERFORMER);
-  gtk_label_set_text (GTK_LABEL (widget), str);
-  g_clear_pointer (&str, g_free);
+  if (str != NULL) {
+    gtk_widget_set_visible (widget, TRUE);
+    gtk_label_set_text (GTK_LABEL (widget), str);
+    g_clear_pointer (&str, g_free);
+  } else {
+    gtk_widget_set_visible (widget, FALSE);
+  }
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "directors-data"));
   str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_DIRECTOR);
-  gtk_label_set_text (GTK_LABEL (widget), str);
-  g_clear_pointer (&str, g_free);
+  if (str != NULL) {
+    gtk_widget_set_visible (widget, TRUE);
+    gtk_label_set_text (GTK_LABEL (widget), str);
+    g_clear_pointer (&str, g_free);
+  } else {
+    gtk_widget_set_visible (widget, FALSE);
+  }
 }
 
 static void
