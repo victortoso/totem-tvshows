@@ -263,7 +263,7 @@ build_ui (void)
 
   /* Construct a GtkBuilder instance and load our UI description */
   os->builder = gtk_builder_new ();
-  gtk_builder_add_from_file (os->builder, "totem-shows.ui", NULL);
+  gtk_builder_add_from_file (os->builder, "totem-shows.glade", NULL);
 
   /* Connect signal handlers to the constructed widgets. */
   widget = GTK_WIDGET (gtk_builder_get_object (os->builder, "main-window"));
