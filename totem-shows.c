@@ -359,30 +359,34 @@ resolve_media_done (GrlSource    *source,
   gchar *img_path;
   OperationSpec *os;
 
-  if (error)
+  if (error) {
     g_error ("Resolve operation failed. Reason: %s", error->message);
+    g_object_unref (media);
+    media_failed ();
+    return;
+  }
 
   os = (OperationSpec *) user_data;
 
   show = grl_media_video_get_show (GRL_MEDIA_VIDEO (media));
   title = grl_media_get_title (media);
-  if (title == NULL && show == NULL) {
-    g_warning ("Can't find metdata from media with url: %s",
-               grl_media_get_url (media));
-    g_object_unref (media);
-
-    media_failed ();
-    return;
-  }
 
   /* Get url to the poster of movie/series */
   url = (show != NULL) ?
     grl_data_get_string (GRL_DATA (media), tvdb_poster_key) :
     grl_data_get_string (GRL_DATA (media), tmdb_poster_key);
 
+  if ((title == NULL && show == NULL) || url == NULL) {
+    g_warning ("Can't find metdata from media with url: %s",
+               grl_media_get_url (media));
+    g_object_unref (media);
+    media_failed ();
+    return;
+  }
+
   g_message ("POSTER URL for '%s' is '%s'",
              (show != NULL) ? show : title,
-            url);
+             url);
 
   img_path = g_build_filename (g_get_tmp_dir (),
                                (show != NULL) ? show : title,
@@ -410,17 +414,20 @@ static void
 resolve_show (GrlMediaVideo *video,
               OperationSpec *os)
 {
-  static GrlSource *source = NULL;
+  GrlSource *source = NULL;
   GrlOperationOptions *options;
   GList *keys;
   GrlCaps *caps;
 
   g_message ("TV SHOW: %s", grl_media_video_get_show (video));
 
-  if (source == NULL)
-    source = grl_registry_lookup_source (registry, THETVDB_ID);
+  source = grl_registry_lookup_source (registry, THETVDB_ID);
+  if (source == NULL) {
+    g_critical ("Can't find the tvdb source");
+    media_failed ();
+    return;
+  }
 
-  g_assert (source != NULL);
   tvdb_poster_key = grl_registry_lookup_metadata_key (registry, "thetvdb-poster");
   g_assert (tvdb_poster_key != GRL_METADATA_KEY_INVALID);
 
@@ -448,17 +455,20 @@ static void
 resolve_movie (GrlMediaVideo *video,
                OperationSpec *os)
 {
-  static GrlSource *source = NULL;
+  GrlSource *source = NULL;
   GrlOperationOptions *options;
   GList *keys;
   GrlCaps *caps;
 
   g_message ("MOVIE: %s", grl_media_get_title (GRL_MEDIA (video)));
 
-  if (source == NULL)
-    source = grl_registry_lookup_source (registry, TMDB_ID);
+  source = grl_registry_lookup_source (registry, TMDB_ID);
+  if (source == NULL) {
+    g_critical ("Can't find the tvdb source");
+    media_failed ();
+    return;
+  }
 
-  g_assert (source != NULL);
   tmdb_poster_key = grl_registry_lookup_metadata_key (registry, "tmdb-poster");
   g_assert (tmdb_poster_key != GRL_METADATA_KEY_INVALID);
 
@@ -494,6 +504,7 @@ resolve_urls_done (GrlSource    *source,
 
   if (error != NULL) {
     g_message ("local-metadata failed: %s", error->message);
+    media_failed ();
     return;
   }
 
@@ -513,7 +524,7 @@ resolve_urls_done (GrlSource    *source,
   }
 }
 
-static void
+static gboolean
 resolve_urls (gchar         *strv[],
               OperationSpec *os)
 {
@@ -526,7 +537,10 @@ resolve_urls (gchar         *strv[],
 
   gbl_num_tests = 0;
   source = grl_registry_lookup_source (registry, LOCAL_METADATA_ID);
-  g_assert (source != NULL);
+  if (source == NULL) {
+    g_critical ("Can't find local-metadata source");
+    return FALSE;
+  }
 
   caps = grl_source_get_caps (source, GRL_OP_RESOLVE);
   options = grl_operation_options_new (caps);
@@ -568,6 +582,7 @@ resolve_urls (gchar         *strv[],
 
   g_object_unref (options);
   g_list_free (keys);
+  return (gbl_num_tests > 0) ? TRUE : FALSE;
 }
 
 /* -------------------------------------------------------------------------- *
@@ -629,6 +644,7 @@ main (gint   argc,
 {
   gchar **strv;
   OperationSpec *os;
+  gboolean resolving;
 
   gtk_init (&argc, &argv);
   grl_init (&argc, &argv);
@@ -643,14 +659,16 @@ main (gint   argc,
   if (os == NULL) {
     g_critical ("Can't create the UI.");
     g_strfreev (strv);
+    return 2;
   }
 
   config_and_load_plugins ();
-  resolve_urls (strv, os);
+  resolving = resolve_urls (strv, os);
 
-  gtk_main ();
+  if (resolving)
+    gtk_main ();
+
   grl_deinit ();
-
   g_strfreev (strv);
   g_object_unref (os->builder);
   g_list_free_full (os->list_medias, g_object_unref);
