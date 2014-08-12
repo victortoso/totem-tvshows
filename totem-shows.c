@@ -122,7 +122,7 @@ set_media_content (GtkBuilder *builder,
 {
   gchar *img_path;
   GtkWidget *poster, *widget;
-  GdkPixbuf *pixbuf;
+  GdkPixbuf *srcpixbuf, *dstpixbuf;
   const gchar *show, *overview, *title;
   GDateTime *released;
   gchar *str;
@@ -147,12 +147,19 @@ set_media_content (GtkBuilder *builder,
     gtk_label_set_text (GTK_LABEL (widget), show) :
     gtk_label_set_text (GTK_LABEL (widget), title);
 
+  /* Get a scalated pixbuf from img file */
   poster = gtk_image_new_from_file (img_path);
-  pixbuf = gtk_image_get_pixbuf (GTK_IMAGE (poster));
-  pixbuf = gdk_pixbuf_scale_simple (pixbuf, 226, 333, GDK_INTERP_BILINEAR);
-  poster = GTK_WIDGET (gtk_builder_get_object (builder, "poster-image"));
-  gtk_image_set_from_pixbuf (GTK_IMAGE (poster), pixbuf);
+  srcpixbuf = gtk_image_get_pixbuf (GTK_IMAGE (poster));
+  dstpixbuf = gdk_pixbuf_scale_simple (srcpixbuf, 226, 333, GDK_INTERP_BILINEAR);
+  gtk_image_clear (GTK_IMAGE (poster));
+  g_object_unref (poster);
   g_clear_pointer (&img_path, g_free);
+
+  /* Clear old image and set new pixbuf to it */
+  poster = GTK_WIDGET (gtk_builder_get_object (builder, "poster-image"));
+  gtk_image_clear (GTK_IMAGE (poster));
+  gtk_image_set_from_pixbuf (GTK_IMAGE (poster), dstpixbuf);
+  g_object_unref (dstpixbuf);
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "summary-data"));
   overview = grl_media_get_description (GRL_MEDIA (video));
@@ -612,6 +619,7 @@ read_input (gint   argc,
   g_option_context_set_summary (context,
                                 "\t<list of paths to vides of tv shows\n");
   g_option_context_parse (context, &argc, &argv, &error);
+  g_option_context_free (context);
   return strv;
 }
 
@@ -644,6 +652,7 @@ main (gint   argc,
   grl_deinit ();
 
   g_strfreev (strv);
+  g_object_unref (os->builder);
   g_list_free_full (os->list_medias, g_object_unref);
   g_slice_free (OperationSpec, os);
 
