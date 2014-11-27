@@ -181,6 +181,16 @@ set_media_content (GtkBuilder *builder,
     gtk_widget_set_visible (widget, FALSE);
   }
 
+  widget = GTK_WIDGET (gtk_builder_get_object (builder, "genre-data"));
+  str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_GENRE);
+  if (str != NULL) {
+    gtk_widget_set_visible (widget, TRUE);
+    gtk_label_set_text (GTK_LABEL (widget), str);
+    g_clear_pointer (&str, g_free);
+  } else {
+    gtk_widget_set_visible (widget, FALSE);
+  }
+
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "cast-data"));
   str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_PERFORMER);
   if (str != NULL) {
@@ -192,6 +202,16 @@ set_media_content (GtkBuilder *builder,
   }
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "directors-data"));
+  str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_DIRECTOR);
+  if (str != NULL) {
+    gtk_widget_set_visible (widget, TRUE);
+    gtk_label_set_text (GTK_LABEL (widget), str);
+    g_clear_pointer (&str, g_free);
+  } else {
+    gtk_widget_set_visible (widget, FALSE);
+  }
+
+  widget = GTK_WIDGET (gtk_builder_get_object (builder, "authors-data"));
   str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_DIRECTOR);
   if (str != NULL) {
     gtk_widget_set_visible (widget, TRUE);
@@ -438,7 +458,10 @@ resolve_show (GrlMediaVideo *video,
   keys = grl_metadata_key_list_new (GRL_METADATA_KEY_DESCRIPTION,
                                     GRL_METADATA_KEY_PERFORMER,
                                     GRL_METADATA_KEY_DIRECTOR,
+                                    GRL_METADATA_KEY_AUTHOR,
+                                    GRL_METADATA_KEY_GENRE,
                                     GRL_METADATA_KEY_PUBLICATION_DATE,
+                                    GRL_METADATA_KEY_TITLE,
                                     tvdb_poster_key,
                                     GRL_METADATA_KEY_INVALID);
   grl_source_resolve (source,
@@ -479,6 +502,8 @@ resolve_movie (GrlMediaVideo *video,
   keys = grl_metadata_key_list_new (GRL_METADATA_KEY_DESCRIPTION,
                                     GRL_METADATA_KEY_PERFORMER,
                                     GRL_METADATA_KEY_DIRECTOR,
+                                    GRL_METADATA_KEY_AUTHOR,
+                                    GRL_METADATA_KEY_GENRE,
                                     GRL_METADATA_KEY_PUBLICATION_DATE,
                                     tmdb_poster_key,
                                     GRL_METADATA_KEY_INVALID);
