@@ -212,7 +212,7 @@ set_media_content (GtkBuilder *builder,
   }
 
   widget = GTK_WIDGET (gtk_builder_get_object (builder, "authors-data"));
-  str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_DIRECTOR);
+  str = get_data_from_media (GRL_DATA (video), GRL_METADATA_KEY_AUTHOR);
   if (str != NULL) {
     gtk_widget_set_visible (widget, TRUE);
     gtk_label_set_text (GTK_LABEL (widget), str);
