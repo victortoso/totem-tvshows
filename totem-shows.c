@@ -130,15 +130,18 @@ set_media_content (GtkBuilder *builder,
   gboolean is_media_show = FALSE;
 
   video = GRL_MEDIA_VIDEO (media);
-  title = grl_media_get_title (media);
 
   show = grl_media_video_get_show (video);
-  if (show != NULL)
-    is_media_show = TRUE;
+  is_media_show = (show != NULL) ? TRUE : FALSE;
 
-  g_message ("set_media_content -> %s", title);
+  title = (is_media_show) ?
+    grl_media_video_get_episode_title (GRL_MEDIA_VIDEO (media)) :
+    grl_media_get_title (media);
+
+  g_message ("[%s] set_media_content -> %s",
+             (is_media_show) ? "Show" : "Movie", title);
   img_path = g_build_filename (g_get_tmp_dir (),
-                               (show != NULL) ? show : title,
+                               (is_media_show) ? show : title,
                                NULL);
 
   /* Connect signal handlers to the constructed widgets. */
@@ -440,7 +443,6 @@ resolve_show (GrlMediaVideo *video,
   GrlCaps *caps;
 
   g_message ("TV SHOW: %s", grl_media_video_get_show (video));
-
   source = grl_registry_lookup_source (registry, THETVDB_ID);
   if (source == NULL) {
     g_critical ("Can't find the tvdb source");
@@ -461,7 +463,7 @@ resolve_show (GrlMediaVideo *video,
                                     GRL_METADATA_KEY_AUTHOR,
                                     GRL_METADATA_KEY_GENRE,
                                     GRL_METADATA_KEY_PUBLICATION_DATE,
-                                    GRL_METADATA_KEY_TITLE,
+                                    GRL_METADATA_KEY_EPISODE_TITLE,
                                     tvdb_poster_key,
                                     GRL_METADATA_KEY_INVALID);
   grl_source_resolve (source,
@@ -572,6 +574,7 @@ resolve_urls (gchar         *strv[],
   grl_operation_options_set_flags (options, GRL_RESOLVE_NORMAL);
 
   keys = grl_metadata_key_list_new (GRL_METADATA_KEY_TITLE,
+                                    GRL_METADATA_KEY_EPISODE_TITLE,
                                     GRL_METADATA_KEY_SHOW,
                                     GRL_METADATA_KEY_SEASON,
                                     GRL_METADATA_KEY_EPISODE,
