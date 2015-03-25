@@ -19,7 +19,6 @@
  * 02110-1301, USA.
  */
 
-#include "config.h"
 #include "totem-video-summary.h"
 
 #include <net/grl-net.h>
@@ -27,6 +26,10 @@
 
 struct _TotemVideosSummaryPrivate
 {
+  GrlRegistry *registry;
+  GrlKeyID tvdb_poster_key;
+  GrlKeyID tmdb_poster_key;
+
   GtkImage *poster;
   GtkLabel *title;
   GtkLabel *summary;
@@ -41,18 +44,7 @@ struct _TotemVideosSummaryPrivate
   gboolean is_tv_show;
 };
 
-static GrlRegistry *registry;
-static GrlKeyID tvdb_poster_key = NULL;
-static GrlKeyID tmdb_poster_key = NULL;
-
-#if 0
-enum
-{
-  PROP_0,
-  PROP_URN
-};
-#endif
-
+static gchar *get_data_from_media (GrlData *data, GrlKeyID key);
 
 G_DEFINE_TYPE_WITH_PRIVATE (TotemVideosSummary, totem_videos_summary, GTK_TYPE_GRID);
 
@@ -69,17 +61,15 @@ totem_videos_summary_set_content (TotemVideosSummary *grid)
   gtk_label_set_text (grid->priv->title, title);
 
   description = grl_media_get_description (GRL_MEDIA (grid->priv->video));
-  if (description != NULL)
-    {
-      gtk_widget_set_visible (grid->priv->summary, TRUE);
+  if (description != NULL) {
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->summary), TRUE);
       gtk_label_set_text (grid->priv->summary, description);
-    }
-  else
-    {
-      gtk_widget_set_visible (grid->priv->summary, FALSE);
-    }
+  } else {
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->summary), FALSE);
+  }
 
   date = grl_media_get_publication_date (GRL_MEDIA (grid->priv->video));
+  /*
   if (released != NULL)
     {
       str = g_date_time_format (released, "%Y");
@@ -87,35 +77,33 @@ totem_videos_summary_set_content (TotemVideosSummary *grid)
         gtk_label_set_text (grid->priv->released, str);
         g_free (str);
       }
-      gtk_widget_set_visible (grid->priv->released, (str != NULL));
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->released), (str != NULL));
     }
   else
     {
-      gtk_widget_set_visible (grid->priv->released, FALSE);
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->released), FALSE);
   }
+  */
 
   str = get_data_from_media (GRL_DATA (grid->priv->video), GRL_METADATA_KEY_GENRE);
-  if (str != NULL)
-    {
+  if (str != NULL) {
       gtk_label_set_text (grid->priv->genre, str);
       g_clear_pointer (&str, g_free);
-      gtk_widget_set_visible (grid->priv->genre, TRUE);
-    }
-  else
-    {
-      gtk_widget_set_visible (grid->priv->genre, FALSE);
-    }
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->genre), TRUE);
+  } else {
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->genre), FALSE);
+  }
 
   str = get_data_from_media (GRL_DATA (grid->priv->video), GRL_METADATA_KEY_PERFORMER);
   if (str != NULL)
     {
       gtk_label_set_text (grid->priv->cast, str);
       g_clear_pointer (&str, g_free);
-      gtk_widget_set_visible (grid->priv->cast, TRUE);
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->cast), TRUE);
     }
   else
     {
-      gtk_widget_set_visible (grid->priv->cast, FALSE);
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->cast), FALSE);
     }
 
   str = get_data_from_media (GRL_DATA (grid->priv->video), GRL_METADATA_KEY_DIRECTOR);
@@ -123,11 +111,11 @@ totem_videos_summary_set_content (TotemVideosSummary *grid)
     {
       gtk_label_set_text (grid->priv->directors, str);
       g_clear_pointer (&str, g_free);
-      gtk_widget_set_visible (grid->priv->directors, TRUE);
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->directors), TRUE);
     }
   else
     {
-      gtk_widget_set_visible (grid->priv->directors, FALSE);
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->directors), FALSE);
     }
 
   str = get_data_from_media (GRL_DATA (grid->priv->video), GRL_METADATA_KEY_AUTHOR);
@@ -135,11 +123,11 @@ totem_videos_summary_set_content (TotemVideosSummary *grid)
     {
       gtk_label_set_text (grid->priv->authors, str);
       g_clear_pointer (&str, g_free);
-      gtk_widget_set_visible (grid->priv->authors, TRUE);
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->authors), TRUE);
     }
   else
     {
-      gtk_widget_set_visible (grid->priv->authors, FALSE);
+      gtk_widget_set_visible (GTK_WIDGET(grid->priv->authors), FALSE);
     }
 
   if (grid->priv->poster_path != NULL)
@@ -215,7 +203,7 @@ totem_videos_summary_class_init (TotemVideosSummaryClass *class)
   object_class->dispose = totem_videos_summary_dispose;
   object_class->finalize = totem_videos_summary_finalize;
 
-  gtk_widget_class_set_template_from_resource (widget_class, "/org/totem/grilo/totemvideosummaryr.ui");
+  gtk_widget_class_set_template_from_resource (widget_class, "/org/totem/grilo/totemvideosummary.ui");
   gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, poster);
   gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, title);
   gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, summary);
@@ -231,25 +219,22 @@ resolve_poster_done (GObject      *source_object,
                      GAsyncResult *res,
                      gpointer      user_data)
 {
+  TotemVideosSummary *grid;
   gchar *data;
   gsize len;
   GError *err = NULL;
 
+  grid = TOTEM_VIDEOS_SUMMARY (user_data);
   grl_net_wc_request_finish (GRL_NET_WC (source_object),
                              res, &data, &len, &err);
-  if (err == NULL)
-    {
-      TotemVideosSummary *grid;
-
-      grid = TOTEM_VIDEOS_SUMMARY (user_data);
-      g_file_set_contents (grid->priv->poster_path, data, len, &err);
-    }
 
   if (err != NULL)
-  {
-    g_warning ("Fetch image failed due: %s", err->message);
-    g_error_free (err);
-  }
+    {
+      g_warning ("Fetch image failed due: %s", err->message);
+      g_error_free (err);
+    }
+  else
+    g_file_set_contents (grid->priv->poster_path, data, len, &err);
 
   /* Update interface */
   totem_videos_summary_set_content (grid);
@@ -257,7 +242,7 @@ resolve_poster_done (GObject      *source_object,
 
 static void
 resolve_metadata_done (GrlSource *source,
-                       guint operation_id,
+                      guint operation_id,
                        GrlMedia *media,
                        gpointer  user_data,
                        const GError *error)
@@ -265,10 +250,11 @@ resolve_metadata_done (GrlSource *source,
   TotemVideosSummary *grid;
   const gchar *title, *poster_url;
 
-  if (error) {
-    g_warning ("Resolve operation failed: %s", error->message);
-    return
-  }
+  if (error)
+    {
+      g_warning ("Resolve operation failed: %s", error->message);
+      return;
+    }
 
   grid = TOTEM_VIDEOS_SUMMARY (user_data);
 
@@ -283,8 +269,8 @@ resolve_metadata_done (GrlSource *source,
     }
 
   poster_url = (grid->priv->is_tv_show) ?
-    grl_data_get_string (GRL_DATA (media), tvdb_poster_key) :
-    grl_data_get_string (GRL_DATA (media), tmdb_poster_key);
+    grl_data_get_string (GRL_DATA (media), grid->priv->tvdb_poster_key) :
+    grl_data_get_string (GRL_DATA (media), grid->priv->tmdb_poster_key);
 
   if (poster_url == NULL)
     {
@@ -297,7 +283,7 @@ resolve_metadata_done (GrlSource *source,
   if (!g_file_test (grid->priv->poster_path, G_FILE_TEST_EXISTS))
     {
       GrlNetWc *wc = grl_net_wc_new ();
-      grl_net_wc_request_async (wc, url, NULL, resolve_poster_done, grid);
+      grl_net_wc_request_async (wc, poster_url, NULL, resolve_poster_done, grid);
       g_object_unref (wc);
     }
   else
@@ -314,11 +300,9 @@ resolve_by_tmdb (TotemVideosSummary *grid)
   GList *keys;
   GrlCaps *caps;
 
-  source = grl_registry_lookup_source (registry, "grl-tmdb");
+  source = grl_registry_lookup_source (grid->priv->registry, "grl-tmdb");
   g_return_if_fail (source != NULL);
-
-  tmdb_poster_key = grl_registry_lookup_metadata_key (registry, "tmdb-poster");
-  g_warn_if_fail (tmdb_poster_key != GRL_METADATA_KEY_INVALID);
+  g_warn_if_fail (grid->priv->tmdb_poster_key != GRL_METADATA_KEY_INVALID);
 
   caps = grl_source_get_caps (source, GRL_OP_RESOLVE);
   options = grl_operation_options_new (caps);
@@ -330,7 +314,7 @@ resolve_by_tmdb (TotemVideosSummary *grid)
                                     GRL_METADATA_KEY_AUTHOR,
                                     GRL_METADATA_KEY_GENRE,
                                     GRL_METADATA_KEY_PUBLICATION_DATE,
-                                    tmdb_poster_key,
+                                    grid->priv->tmdb_poster_key,
                                     GRL_METADATA_KEY_INVALID);
   grl_source_resolve (source,
                       GRL_MEDIA (grid->priv->video),
@@ -350,11 +334,9 @@ resolve_by_the_tvdb (TotemVideosSummary *grid)
   GList *keys;
   GrlCaps *caps;
 
-  source = grl_registry_lookup_source (registry, "grl-thetvdb");
+  source = grl_registry_lookup_source (grid->priv->registry, "grl-thetvdb");
   g_return_if_fail (source != NULL);
-
-  tvdb_poster_key = grl_registry_lookup_metadata_key (registry, "thetvdb-poster");
-  g_warn_if_fail (tvdb_poster_key != GRL_METADATA_KEY_INVALID);
+  g_warn_if_fail (grid->priv->tvdb_poster_key != GRL_METADATA_KEY_INVALID);
 
   caps = grl_source_get_caps (source, GRL_OP_RESOLVE);
   options = grl_operation_options_new (caps);
@@ -367,7 +349,7 @@ resolve_by_the_tvdb (TotemVideosSummary *grid)
                                     GRL_METADATA_KEY_GENRE,
                                     GRL_METADATA_KEY_PUBLICATION_DATE,
                                     GRL_METADATA_KEY_EPISODE_TITLE,
-                                    tvdb_poster_key,
+                                    grid->priv->tvdb_poster_key,
                                     GRL_METADATA_KEY_INVALID);
   grl_source_resolve (source,
                       GRL_MEDIA (grid->priv->video),
@@ -424,7 +406,7 @@ resolve_by_local_metadata (TotemVideosSummary *grid)
   GrlCaps *caps;
   gchar *url;
 
-  source = grl_registry_lookup_source (registry, "grl-local-metadata");
+  source = grl_registry_lookup_source (grid->priv->registry, "grl-local-metadata");
   g_return_if_fail (source != NULL);
 
   caps = grl_source_get_caps (source, GRL_OP_RESOLVE);
@@ -465,15 +447,47 @@ totem_videos_summary_media_init (TotemVideosSummary *grid)
   return TRUE;
 }
 
-GtkWidget *
+TotemVideosSummary *
 totem_videos_summary_new (GrlMediaVideo *video)
 {
   TotemVideosSummary *grid;
 
   grid = g_object_new (TOTEM_TYPE_VIDEOS_SUMMARY, NULL);
   grid->priv->video = g_object_ref (video);
-  if (totem_videos_summary_media_init (grid) == FALSE)
+  grid->priv->registry = grl_registry_get_default();
+  grid->priv->tvdb_poster_key = grl_registry_lookup_metadata_key (grid->priv->registry, "thetvdb-poster");
+  grid->priv->tmdb_poster_key = grl_registry_lookup_metadata_key (grid->priv->registry, "tmdb-poster");
+  if (totem_videos_summary_media_init (grid) == FALSE) {
     g_clear_object (&grid);
+  }
 
   return grid;
+}
+
+/* For GrlKeys that have several values, return all of them in one
+ * string separated by comma; */
+static gchar *
+get_data_from_media (GrlData *data,
+                     GrlKeyID key)
+{
+  gint i, len;
+  gchar *str = NULL;
+
+  /* FIXME: Use GString instead */
+  len = grl_data_length (data, key);
+  for (i = 0; i < len; i++) {
+    GrlRelatedKeys *relkeys;
+    gchar *tmp;
+    const gchar *element;
+
+    relkeys = grl_data_get_related_keys (data, key, i);
+    element = grl_related_keys_get_string (relkeys, key);
+    g_print ("-----> %s\n", element);
+
+    tmp = str;
+    str = (str == NULL) ? g_strdup (element) : g_strconcat (str, ", ", element, NULL);
+    g_clear_pointer (&tmp, g_free);
+  }
+  g_print ("[debug] %s\n", str);
+  return str;
 }

@@ -26,13 +26,13 @@
 
 G_BEGIN_DECLS
 
-#define TOTEM_TYPE_VIDEOS_SUMMARY (totem_videos_summary_get_type ())
+#define TOTEM_TYPE_VIDEOS_SUMMARY             (totem_videos_summary_get_type())
 
-#define TOTEM_VIDEOS_SUMMARY (obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), TOTEM_TYPE_VIDEOS_SUMMARY, TotemVideosSummary))
-#define TOTEM_VIDEOS_SUMMARY_CLASS (klass)     (G_TYPE_CHECK_CLASS_CAST ((klass), TOTEM_TYPE_VIDEOS_SUMMARY, TotemVideosSummaryClass))
-#define TOTEM_IS_VIDEOS_SUMMARY (obj)          (G_TYPE_CHECK_INSTANCE_TYPE ((obj), TOTEM_TYPE_VIDEOS_SUMMARY))
-#define TOTEM_IS_VIDEOS_SUMMARY_CLASS (klass)  (G_TYPE_CHECK_CLASS_TYPE ((klass), TOTEM_TYPE_VIDEOS_SUMMARY))
-#define TOTEM_VIDEOS_SUMMARY_GET_CLASS (obj)   (G_TYPE_INSTANCE_GET_CLASS ((obj), TOTEM_TYPE_VIDEOS_SUMMARY, TotemVideosSummaryClass))
+#define TOTEM_VIDEOS_SUMMARY(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), TOTEM_TYPE_VIDEOS_SUMMARY, TotemVideosSummary))
+#define TOTEM_VIDEOS_SUMMARY_CLASS(klass)     (G_TYPE_CHECK_CLASS_CAST ((klass), TOTEM_TYPE_VIDEOS_SUMMARY, TotemVideosSummaryClass))
+#define TOTEM_IS_VIDEOS_SUMMARY(obj)          (G_TYPE_CHECK_INSTANCE_TYPE ((obj), TOTEM_TYPE_VIDEOS_SUMMARY))
+#define TOTEM_IS_VIDEOS_SUMMARY_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE ((klass), TOTEM_TYPE_VIDEOS_SUMMARY))
+#define TOTEM_VIDEOS_SUMMARY_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS ((obj), TOTEM_TYPE_VIDEOS_SUMMARY, TotemVideosSummaryClass))
 
 typedef struct _TotemVideosSummary        TotemVideosSummary;
 typedef struct _TotemVideosSummaryClass   TotemVideosSummaryClass;
@@ -50,7 +50,7 @@ struct _TotemVideosSummaryClass
 };
 
 GType               totem_videos_summary_get_type           (void) G_GNUC_CONST;
-GtkWidget          *totem_videos_summary_new                (GtkWindow *parent, GrlMediaVideo *video);
+TotemVideosSummary *totem_videos_summary_new                (GrlMediaVideo *video);
 
 G_END_DECLS
 
