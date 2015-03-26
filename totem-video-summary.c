@@ -27,6 +27,9 @@
 struct _TotemVideosSummaryPrivate
 {
   GrlRegistry *registry;
+  GrlSource *tmdb_source;
+  GrlSource *tvdb_source;
+  GrlSource *local_metadata_source;
   GrlKeyID tvdb_poster_key;
   GrlKeyID tmdb_poster_key;
 
@@ -52,7 +55,7 @@ static void
 totem_videos_summary_set_content (TotemVideosSummary *grid)
 {
   const gchar *title, *description;
-  GDateTime *date;
+  //GDateTime *date;
   gchar *str;
 
   title = (grid->priv->is_tv_show) ?
@@ -68,8 +71,8 @@ totem_videos_summary_set_content (TotemVideosSummary *grid)
       gtk_widget_set_visible (GTK_WIDGET(grid->priv->summary), FALSE);
   }
 
-  date = grl_media_get_publication_date (GRL_MEDIA (grid->priv->video));
   /*
+  date = grl_media_get_publication_date (GRL_MEDIA (grid->priv->video));
   if (released != NULL)
     {
       str = g_date_time_format (released, "%Y");
@@ -136,7 +139,7 @@ totem_videos_summary_set_content (TotemVideosSummary *grid)
       GdkPixbuf *srcpixbuf, *dstpixbuf;
 
       /* Get a scalated pixbuf from img file */
-      poster = gtk_image_new_from_file (grid->priv->poster_path);
+      poster = GTK_IMAGE(gtk_image_new_from_file (grid->priv->poster_path));
       srcpixbuf = gtk_image_get_pixbuf (poster);
       dstpixbuf = gdk_pixbuf_scale_simple (srcpixbuf, 226, 333, GDK_INTERP_BILINEAR);
       g_object_unref (poster);
@@ -152,7 +155,7 @@ totem_videos_summary_set_content (TotemVideosSummary *grid)
 static void
 totem_videos_summary_dispose (GObject *object)
 {
-  TotemVideosSummary *self = TOTEM_VIDEOS_SUMMARY (object);
+  //TotemVideosSummary *self = TOTEM_VIDEOS_SUMMARY (object);
 
   G_OBJECT_CLASS (totem_videos_summary_parent_class)->dispose (object);
 }
@@ -173,7 +176,6 @@ totem_videos_summary_finalize (GObject *object)
 static void
 totem_videos_summary_init (TotemVideosSummary *self)
 {
-  TotemVideosSummaryPrivate *priv;
   self->priv = totem_videos_summary_get_instance_private (self);
 
 #if 0
@@ -295,18 +297,13 @@ resolve_metadata_done (GrlSource *source,
 static void
 resolve_by_tmdb (TotemVideosSummary *grid)
 {
-  GrlSource *source = NULL;
   GrlOperationOptions *options;
   GList *keys;
   GrlCaps *caps;
 
-  source = grl_registry_lookup_source (grid->priv->registry, "grl-tmdb");
-  g_return_if_fail (source != NULL);
-  g_warn_if_fail (grid->priv->tmdb_poster_key != GRL_METADATA_KEY_INVALID);
-
-  caps = grl_source_get_caps (source, GRL_OP_RESOLVE);
+  caps = grl_source_get_caps (grid->priv->tmdb_source, GRL_OP_RESOLVE);
   options = grl_operation_options_new (caps);
-  grl_operation_options_set_flags (options, GRL_RESOLVE_NORMAL);
+  grl_operation_options_set_resolution_flags (options, GRL_RESOLVE_NORMAL);
 
   keys = grl_metadata_key_list_new (GRL_METADATA_KEY_DESCRIPTION,
                                     GRL_METADATA_KEY_PERFORMER,
@@ -316,7 +313,7 @@ resolve_by_tmdb (TotemVideosSummary *grid)
                                     GRL_METADATA_KEY_PUBLICATION_DATE,
                                     grid->priv->tmdb_poster_key,
                                     GRL_METADATA_KEY_INVALID);
-  grl_source_resolve (source,
+  grl_source_resolve (grid->priv->tmdb_source,
                       GRL_MEDIA (grid->priv->video),
                       keys,
                       options,
@@ -329,18 +326,13 @@ resolve_by_tmdb (TotemVideosSummary *grid)
 static void
 resolve_by_the_tvdb (TotemVideosSummary *grid)
 {
-  GrlSource *source = NULL;
   GrlOperationOptions *options;
   GList *keys;
   GrlCaps *caps;
 
-  source = grl_registry_lookup_source (grid->priv->registry, "grl-thetvdb");
-  g_return_if_fail (source != NULL);
-  g_warn_if_fail (grid->priv->tvdb_poster_key != GRL_METADATA_KEY_INVALID);
-
-  caps = grl_source_get_caps (source, GRL_OP_RESOLVE);
+  caps = grl_source_get_caps (grid->priv->tvdb_source, GRL_OP_RESOLVE);
   options = grl_operation_options_new (caps);
-  grl_operation_options_set_flags (options, GRL_RESOLVE_NORMAL);
+  grl_operation_options_set_resolution_flags (options, GRL_RESOLVE_NORMAL);
 
   keys = grl_metadata_key_list_new (GRL_METADATA_KEY_DESCRIPTION,
                                     GRL_METADATA_KEY_PERFORMER,
@@ -351,7 +343,7 @@ resolve_by_the_tvdb (TotemVideosSummary *grid)
                                     GRL_METADATA_KEY_EPISODE_TITLE,
                                     grid->priv->tvdb_poster_key,
                                     GRL_METADATA_KEY_INVALID);
-  grl_source_resolve (source,
+  grl_source_resolve (grid->priv->tvdb_source,
                       GRL_MEDIA (grid->priv->video),
                       keys,
                       options,
@@ -400,18 +392,13 @@ resolve_by_local_metadata_done (GrlSource *source,
 static void
 resolve_by_local_metadata (TotemVideosSummary *grid)
 {
-  GrlSource *source;
   GrlOperationOptions *options;
   GList *keys;
   GrlCaps *caps;
-  gchar *url;
 
-  source = grl_registry_lookup_source (grid->priv->registry, "grl-local-metadata");
-  g_return_if_fail (source != NULL);
-
-  caps = grl_source_get_caps (source, GRL_OP_RESOLVE);
+  caps = grl_source_get_caps (grid->priv->local_metadata_source, GRL_OP_RESOLVE);
   options = grl_operation_options_new (caps);
-  grl_operation_options_set_flags (options, GRL_RESOLVE_NORMAL);
+  grl_operation_options_set_resolution_flags (options, GRL_RESOLVE_NORMAL);
 
   keys = grl_metadata_key_list_new (GRL_METADATA_KEY_TITLE,
                                     GRL_METADATA_KEY_EPISODE_TITLE,
@@ -424,7 +411,7 @@ resolve_by_local_metadata (TotemVideosSummary *grid)
   grl_data_set_boolean (GRL_DATA (grid->priv->video),
                         GRL_METADATA_KEY_TITLE_FROM_FILENAME,
                         TRUE);
-  grl_source_resolve (source,
+  grl_source_resolve (grid->priv->local_metadata_source,
                       GRL_MEDIA (grid->priv->video),
                       keys,
                       options,
@@ -451,17 +438,55 @@ TotemVideosSummary *
 totem_videos_summary_new (GrlMediaVideo *video)
 {
   TotemVideosSummary *grid;
+  GrlConfig *config;
+  GrlSource *source;
+  GrlRegistry *registry;
+  GError *error = NULL;
 
   grid = g_object_new (TOTEM_TYPE_VIDEOS_SUMMARY, NULL);
+  registry = grl_registry_get_default();
+  grid->priv->registry = registry;
+
+  config = grl_config_new ("grl-thetvdb", NULL);
+  grl_config_set_api_key (config, "3F476CEF2FBD0FB0");
+  grl_registry_add_config (registry, config, &error);
+  g_assert_no_error (error);
+
+  config = grl_config_new ("grl-tmdb", NULL);
+  grl_config_set_api_key (config, "719b9b296835b04cd919c4bf5220828a");
+  grl_registry_add_config (registry, config, &error);
+  g_assert_no_error (error);
+
+  /* FIXME: Only load the plugins we need */
+  grl_registry_load_all_plugins (registry, &error);
+  g_assert_no_error (error);
+
+  source = grl_registry_lookup_source (registry, "grl-tmdb");
+  g_return_val_if_fail (source != NULL, NULL);
+  grid->priv->tmdb_source = source;
+
+  source = grl_registry_lookup_source (registry, "grl-thetvdb");
+  g_return_val_if_fail (source != NULL, NULL);
+  grid->priv->tvdb_source = source;
+
+  source = grl_registry_lookup_source (registry, "grl-local-metadata");
+  g_return_val_if_fail (source != NULL, NULL);
+  grid->priv->local_metadata_source = source;
+
+  grid->priv->tvdb_poster_key = grl_registry_lookup_metadata_key (registry, "thetvdb-poster");
+  grid->priv->tmdb_poster_key = grl_registry_lookup_metadata_key (registry, "tmdb-poster");
+
+  /* FIXME: Disable movie/series if plugin is not loaded correctly or return NULL in case of
+   * all of them. */
+  g_return_val_if_fail (grid->priv->tvdb_poster_key != GRL_METADATA_KEY_INVALID, NULL);
+  g_return_val_if_fail (grid->priv->tmdb_poster_key != GRL_METADATA_KEY_INVALID, NULL);
+
   grid->priv->video = g_object_ref (video);
-  grid->priv->registry = grl_registry_get_default();
-  grid->priv->tvdb_poster_key = grl_registry_lookup_metadata_key (grid->priv->registry, "thetvdb-poster");
-  grid->priv->tmdb_poster_key = grl_registry_lookup_metadata_key (grid->priv->registry, "tmdb-poster");
   if (totem_videos_summary_media_init (grid) == FALSE) {
     g_clear_object (&grid);
   }
 
-  return grid;
+  return g_object_ref_sink (grid);
 }
 
 /* For GrlKeys that have several values, return all of them in one

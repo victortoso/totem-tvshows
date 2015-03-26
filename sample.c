@@ -14,8 +14,13 @@ gint main(gint argc, gchar *argv[])
 
     tvs = totem_videos_summary_new (video);
     g_object_unref (video);
-    if (TOTEM_IS_VIDEOS_SUMMARY (tvs))
-        g_print ("Sucesso\n");
-    g_object_unref (tvs);
+    if (tvs != NULL) {
+        if (TOTEM_IS_VIDEOS_SUMMARY (tvs)) {
+            g_print ("Sucesso\n");
+        } else
+            g_print ("Fail: is not tvs\n");
+        g_object_unref (tvs);
+    } else
+        g_print ("Fail: is null\n");
     return 0;
 }
