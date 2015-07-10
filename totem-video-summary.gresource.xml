@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="/org/totem/grilo">
-    <file compressed="true">totemvideosummary.ui</file>
+    <file compressed="true">totem-video-summary.ui</file>
   </gresource>
 </gresources>
