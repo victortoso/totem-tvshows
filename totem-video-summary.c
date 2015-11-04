@@ -59,10 +59,13 @@ totem_videos_summary_set_content (TotemVideosSummary *grid)
   //GDateTime *date;
   gchar *str;
 
-  title = (grid->priv->is_tv_show) ?
-    grl_media_video_get_episode_title (grid->priv->video) :
-    grl_media_get_title (GRL_MEDIA (grid->priv->video));
-  gtk_label_set_text (grid->priv->title, title);
+  if (grid->priv->is_tv_show)
+    title = grl_media_video_get_episode_title (grid->priv->video);
+  else
+    title = grl_media_get_title (GRL_MEDIA (grid->priv->video));
+
+  if (title)
+    gtk_label_set_text (grid->priv->title, title);
 
   description = grl_media_get_description (GRL_MEDIA (grid->priv->video));
   if (description != NULL) {
