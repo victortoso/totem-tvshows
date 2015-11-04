@@ -52,6 +52,10 @@ static gchar *get_data_from_media (GrlData *data, GrlKeyID key);
 
 G_DEFINE_TYPE_WITH_PRIVATE (TotemVideosSummary, totem_videos_summary, GTK_TYPE_GRID);
 
+/* -------------------------------------------------------------------------- *
+ * Internal / Helpers
+ * -------------------------------------------------------------------------- */
+
 static void
 totem_videos_summary_set_content (TotemVideosSummary *grid)
 {
@@ -69,139 +73,77 @@ totem_videos_summary_set_content (TotemVideosSummary *grid)
 
   description = grl_media_get_description (GRL_MEDIA (grid->priv->video));
   if (description != NULL) {
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->summary), TRUE);
-      gtk_label_set_text (grid->priv->summary, description);
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->summary), TRUE);
+    gtk_label_set_text (grid->priv->summary, description);
   } else {
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->summary), FALSE);
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->summary), FALSE);
   }
 
   /*
   date = grl_media_get_publication_date (GRL_MEDIA (grid->priv->video));
-  if (released != NULL)
-    {
-      str = g_date_time_format (released, "%Y");
-      if (str != NULL) {
-        gtk_label_set_text (grid->priv->released, str);
-        g_free (str);
-      }
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->released), (str != NULL));
+  if (released != NULL) {
+    str = g_date_time_format (released, "%Y");
+    if (str != NULL) {
+      gtk_label_set_text (grid->priv->released, str);
+      g_free (str);
     }
-  else
-    {
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->released), FALSE);
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->released), (str != NULL));
+  } else {
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->released), FALSE);
   }
   */
 
   str = get_data_from_media (GRL_DATA (grid->priv->video), GRL_METADATA_KEY_GENRE);
   if (str != NULL) {
-      gtk_label_set_text (grid->priv->genre, str);
-      g_clear_pointer (&str, g_free);
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->genre), TRUE);
+    gtk_label_set_text (grid->priv->genre, str);
+    g_clear_pointer (&str, g_free);
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->genre), TRUE);
   } else {
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->genre), FALSE);
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->genre), FALSE);
   }
 
   str = get_data_from_media (GRL_DATA (grid->priv->video), GRL_METADATA_KEY_PERFORMER);
-  if (str != NULL)
-    {
-      gtk_label_set_text (grid->priv->cast, str);
-      g_clear_pointer (&str, g_free);
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->cast), TRUE);
-    }
-  else
-    {
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->cast), FALSE);
-    }
+  if (str != NULL) {
+    gtk_label_set_text (grid->priv->cast, str);
+    g_clear_pointer (&str, g_free);
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->cast), TRUE);
+  } else {
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->cast), FALSE);
+  }
 
   str = get_data_from_media (GRL_DATA (grid->priv->video), GRL_METADATA_KEY_DIRECTOR);
-  if (str != NULL)
-    {
-      gtk_label_set_text (grid->priv->directors, str);
-      g_clear_pointer (&str, g_free);
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->directors), TRUE);
-    }
-  else
-    {
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->directors), FALSE);
-    }
+  if (str != NULL) {
+    gtk_label_set_text (grid->priv->directors, str);
+    g_clear_pointer (&str, g_free);
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->directors), TRUE);
+  } else {
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->directors), FALSE);
+  }
 
   str = get_data_from_media (GRL_DATA (grid->priv->video), GRL_METADATA_KEY_AUTHOR);
-  if (str != NULL)
-    {
-      gtk_label_set_text (grid->priv->authors, str);
-      g_clear_pointer (&str, g_free);
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->authors), TRUE);
-    }
-  else
-    {
-      gtk_widget_set_visible (GTK_WIDGET(grid->priv->authors), FALSE);
-    }
+  if (str != NULL) {
+    gtk_label_set_text (grid->priv->authors, str);
+    g_clear_pointer (&str, g_free);
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->authors), TRUE);
+  } else {
+    gtk_widget_set_visible (GTK_WIDGET(grid->priv->authors), FALSE);
+  }
 
-  if (grid->priv->poster_path != NULL)
-    {
-      GtkImage *poster;
-      GdkPixbuf *srcpixbuf, *dstpixbuf;
+  if (grid->priv->poster_path != NULL) {
+    GtkImage *poster;
+    GdkPixbuf *srcpixbuf, *dstpixbuf;
 
-      /* Get a scalated pixbuf from img file */
-      poster = GTK_IMAGE(gtk_image_new_from_file (grid->priv->poster_path));
-      srcpixbuf = gtk_image_get_pixbuf (poster);
-      dstpixbuf = gdk_pixbuf_scale_simple (srcpixbuf, 226, 333, GDK_INTERP_BILINEAR);
-      g_object_unref (poster);
+    /* Get a scalated pixbuf from img file */
+    poster = GTK_IMAGE(gtk_image_new_from_file (grid->priv->poster_path));
+    srcpixbuf = gtk_image_get_pixbuf (poster);
+    dstpixbuf = gdk_pixbuf_scale_simple (srcpixbuf, 226, 333, GDK_INTERP_BILINEAR);
+    g_object_unref (poster);
 
-      /* Clear old image and set new pixbuf to it */
-      //FIXME gtk_image_clear (grid->priv->poster);
-      gtk_image_set_from_pixbuf (grid->priv->poster, dstpixbuf);
-      g_object_unref (dstpixbuf);
-    }
-}
-
-
-static void
-totem_videos_summary_dispose (GObject *object)
-{
-  //TotemVideosSummary *self = TOTEM_VIDEOS_SUMMARY (object);
-
-  G_OBJECT_CLASS (totem_videos_summary_parent_class)->dispose (object);
-}
-
-
-static void
-totem_videos_summary_finalize (GObject *object)
-{
-  TotemVideosSummary *self = TOTEM_VIDEOS_SUMMARY (object);
-
-  g_clear_object (&self->priv->video);
-  g_clear_pointer (&self->priv->poster_path, g_free);
-
-  G_OBJECT_CLASS (totem_videos_summary_parent_class)->finalize (object);
-}
-
-
-static void
-totem_videos_summary_init (TotemVideosSummary *self)
-{
-  gtk_widget_init_template (GTK_WIDGET (self));
-  self->priv = totem_videos_summary_get_instance_private (self);
-}
-
-static void
-totem_videos_summary_class_init (TotemVideosSummaryClass *class)
-{
-  GObjectClass *object_class = G_OBJECT_CLASS (class);
-  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
-
-  object_class->dispose = totem_videos_summary_dispose;
-  object_class->finalize = totem_videos_summary_finalize;
-
-  gtk_widget_class_set_template_from_resource (widget_class, "/org/totem/grilo/totem-video-summary.ui");
-  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, poster);
-  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, title);
-  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, summary);
-  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, released);
-  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, genre);
-  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, cast);
-  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, directors);
-  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, authors);
+    /* Clear old image and set new pixbuf to it */
+    //FIXME gtk_image_clear (grid->priv->poster);
+    gtk_image_set_from_pixbuf (grid->priv->poster, dstpixbuf);
+    g_object_unref (dstpixbuf);
+  }
 }
 
 static void
@@ -217,34 +159,31 @@ resolve_poster_done (GObject      *source_object,
   grid = TOTEM_VIDEOS_SUMMARY (user_data);
   grl_net_wc_request_finish (GRL_NET_WC (source_object),
                              res, &data, &len, &err);
-
-  if (err != NULL)
-    {
-      g_warning ("Fetch image failed due: %s", err->message);
-      g_error_free (err);
-    }
-  else
+  if (err != NULL) {
+    g_warning ("Fetch image failed due: %s", err->message);
+    g_error_free (err);
+  } else {
     g_file_set_contents (grid->priv->poster_path, data, len, &err);
+  }
 
   /* Update interface */
   totem_videos_summary_set_content (grid);
 }
 
 static void
-resolve_metadata_done (GrlSource *source,
-                      guint operation_id,
-                       GrlMedia *media,
-                       gpointer  user_data,
+resolve_metadata_done (GrlSource    *source,
+                       guint         operation_id,
+                       GrlMedia     *media,
+                       gpointer      user_data,
                        const GError *error)
 {
   TotemVideosSummary *grid;
   const gchar *title, *poster_url;
 
-  if (error)
-    {
-      g_warning ("Resolve operation failed: %s", error->message);
-      return;
-    }
+  if (error) {
+    g_warning ("Resolve operation failed: %s", error->message);
+    return;
+  }
 
   grid = TOTEM_VIDEOS_SUMMARY (user_data);
 
@@ -252,34 +191,29 @@ resolve_metadata_done (GrlSource *source,
     grl_media_video_get_show (GRL_MEDIA_VIDEO (media)) :
     grl_media_get_title (media);
 
-  if (title == NULL)
-    {
-      g_warning ("Basic information is missing - no title");
-      return;
-    }
+  if (title == NULL) {
+    g_warning ("Basic information is missing - no title");
+    return;
+  }
 
   poster_url = (grid->priv->is_tv_show) ?
     grl_data_get_string (GRL_DATA (media), grid->priv->tvdb_poster_key) :
     grl_data_get_string (GRL_DATA (media), grid->priv->tmdb_poster_key);
 
-  if (poster_url == NULL)
-    {
-      g_debug ("Media without poster");
-      totem_videos_summary_set_content (grid);
-      return;
-    }
+  if (poster_url == NULL) {
+    g_debug ("Media without poster");
+    totem_videos_summary_set_content (grid);
+    return;
+  }
 
   grid->priv->poster_path = g_build_filename (g_get_tmp_dir (), title, NULL);
-  if (!g_file_test (grid->priv->poster_path, G_FILE_TEST_EXISTS))
-    {
-      GrlNetWc *wc = grl_net_wc_new ();
-      grl_net_wc_request_async (wc, poster_url, NULL, resolve_poster_done, grid);
-      g_object_unref (wc);
-    }
-  else
-    {
-      totem_videos_summary_set_content (grid);
-    }
+  if (!g_file_test (grid->priv->poster_path, G_FILE_TEST_EXISTS)) {
+    GrlNetWc *wc = grl_net_wc_new ();
+    grl_net_wc_request_async (wc, poster_url, NULL, resolve_poster_done, grid);
+    g_object_unref (wc);
+  } else {
+    totem_videos_summary_set_content (grid);
+  }
 }
 
 static void
@@ -362,9 +296,9 @@ resolve_by_video_title_parsing_done (GrlSource *source,
     totem_videos_summary_set_content (grid);
     resolve_by_the_tvdb (grid);
   } else if (grl_media_get_title (media) != NULL) {
-      grid->priv->is_tv_show = FALSE;
-      totem_videos_summary_set_content (grid);
-      resolve_by_tmdb (grid);
+    grid->priv->is_tv_show = FALSE;
+    totem_videos_summary_set_content (grid);
+    resolve_by_tmdb (grid);
   } else {
     g_warning ("video type is not defined: %s", grl_media_get_url (media));
   }
@@ -422,6 +356,36 @@ totem_videos_summary_media_init (TotemVideosSummary *grid)
   return TRUE;
 }
 
+/* For GrlKeys that have several values, return all of them in one
+ * string separated by comma; */
+static gchar *
+get_data_from_media (GrlData *data,
+                     GrlKeyID key)
+{
+  gint i, len;
+  gchar *str = NULL;
+
+  /* FIXME: Use GString instead */
+  len = grl_data_length (data, key);
+  for (i = 0; i < len; i++) {
+    GrlRelatedKeys *relkeys;
+    gchar *tmp;
+    const gchar *element;
+
+    relkeys = grl_data_get_related_keys (data, key, i);
+    element = grl_related_keys_get_string (relkeys, key);
+
+    tmp = str;
+    str = (str == NULL) ? g_strdup (element) : g_strconcat (str, ", ", element, NULL);
+    g_clear_pointer (&tmp, g_free);
+  }
+  return str;
+}
+
+/* -------------------------------------------------------------------------- *
+ * External
+ * -------------------------------------------------------------------------- */
+
 TotemVideosSummary *
 totem_videos_summary_new (GrlMediaVideo *video)
 {
@@ -461,28 +425,52 @@ totem_videos_summary_new (GrlMediaVideo *video)
   return self;
 }
 
-/* For GrlKeys that have several values, return all of them in one
- * string separated by comma; */
-static gchar *
-get_data_from_media (GrlData *data,
-                     GrlKeyID key)
+/* -------------------------------------------------------------------------- *
+ * Object
+ * -------------------------------------------------------------------------- */
+
+static void
+totem_videos_summary_dispose (GObject *object)
 {
-  gint i, len;
-  gchar *str = NULL;
+  //TotemVideosSummary *self = TOTEM_VIDEOS_SUMMARY (object);
 
-  /* FIXME: Use GString instead */
-  len = grl_data_length (data, key);
-  for (i = 0; i < len; i++) {
-    GrlRelatedKeys *relkeys;
-    gchar *tmp;
-    const gchar *element;
+  G_OBJECT_CLASS (totem_videos_summary_parent_class)->dispose (object);
+}
 
-    relkeys = grl_data_get_related_keys (data, key, i);
-    element = grl_related_keys_get_string (relkeys, key);
+static void
+totem_videos_summary_finalize (GObject *object)
+{
+  TotemVideosSummary *self = TOTEM_VIDEOS_SUMMARY (object);
 
-    tmp = str;
-    str = (str == NULL) ? g_strdup (element) : g_strconcat (str, ", ", element, NULL);
-    g_clear_pointer (&tmp, g_free);
-  }
-  return str;
+  g_clear_object (&self->priv->video);
+  g_clear_pointer (&self->priv->poster_path, g_free);
+
+  G_OBJECT_CLASS (totem_videos_summary_parent_class)->finalize (object);
+}
+
+static void
+totem_videos_summary_init (TotemVideosSummary *self)
+{
+  gtk_widget_init_template (GTK_WIDGET (self));
+  self->priv = totem_videos_summary_get_instance_private (self);
+}
+
+static void
+totem_videos_summary_class_init (TotemVideosSummaryClass *class)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (class);
+  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
+
+  object_class->dispose = totem_videos_summary_dispose;
+  object_class->finalize = totem_videos_summary_finalize;
+
+  gtk_widget_class_set_template_from_resource (widget_class, "/org/totem/grilo/totem-video-summary.ui");
+  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, poster);
+  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, title);
+  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, summary);
+  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, released);
+  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, genre);
+  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, cast);
+  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, directors);
+  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, authors);
 }
