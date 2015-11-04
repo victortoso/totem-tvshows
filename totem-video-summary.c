@@ -30,7 +30,7 @@ struct _TotemVideosSummaryPrivate
   GrlRegistry *registry;
   GrlSource *tmdb_source;
   GrlSource *tvdb_source;
-  GrlSource *local_metadata_source;
+  GrlSource *video_title_parsing_source;
   GrlKeyID tvdb_poster_key;
   GrlKeyID tmdb_poster_key;
 
@@ -339,11 +339,11 @@ resolve_by_the_tvdb (TotemVideosSummary *grid)
 }
 
 static void
-resolve_by_local_metadata_done (GrlSource *source,
-                                guint operation_id,
-                                GrlMedia *media,
-                                gpointer  user_data,
-                                const GError *error)
+resolve_by_video_title_parsing_done (GrlSource *source,
+                                     guint operation_id,
+                                     GrlMedia *media,
+                                     gpointer  user_data,
+                                     const GError *error)
 {
   TotemVideosSummary *grid;
 
@@ -369,13 +369,13 @@ resolve_by_local_metadata_done (GrlSource *source,
 }
 
 static void
-resolve_by_local_metadata (TotemVideosSummary *grid)
+resolve_by_video_title_parsing (TotemVideosSummary *grid)
 {
   GrlOperationOptions *options;
   GList *keys;
   GrlCaps *caps;
 
-  caps = grl_source_get_caps (grid->priv->local_metadata_source, GRL_OP_RESOLVE);
+  caps = grl_source_get_caps (grid->priv->video_title_parsing_source, GRL_OP_RESOLVE);
   options = grl_operation_options_new (caps);
   grl_operation_options_set_resolution_flags (options, GRL_RESOLVE_NORMAL);
 
@@ -390,11 +390,11 @@ resolve_by_local_metadata (TotemVideosSummary *grid)
   grl_data_set_boolean (GRL_DATA (grid->priv->video),
                         GRL_METADATA_KEY_TITLE_FROM_FILENAME,
                         TRUE);
-  grl_source_resolve (grid->priv->local_metadata_source,
+  grl_source_resolve (grid->priv->video_title_parsing_source,
                       GRL_MEDIA (grid->priv->video),
                       keys,
                       options,
-                      resolve_by_local_metadata_done,
+                      resolve_by_video_title_parsing_done,
                       grid);
   g_object_unref (options);
   g_list_free (keys);
@@ -410,8 +410,8 @@ totem_videos_summary_media_init (TotemVideosSummary *grid)
     return FALSE;
 
   g_print("-----------> '%s'\n", url);
-  g_print("----> '%s'\n", grl_source_get_name(grid->priv->local_metadata_source));
-  resolve_by_local_metadata (grid);
+  g_print("----> '%s'\n", grl_source_get_name(grid->priv->video_title_parsing_source));
+  resolve_by_video_title_parsing (grid);
   return TRUE;
 }
 
@@ -419,10 +419,8 @@ TotemVideosSummary *
 totem_videos_summary_new (GrlMediaVideo *video)
 {
   TotemVideosSummary *self;
-  GrlConfig *config;
   GrlSource *source;
   GrlRegistry *registry;
-  GError *error = NULL;
 
   self = g_object_new (TOTEM_TYPE_VIDEOS_SUMMARY, NULL);
   registry = grl_registry_get_default();
@@ -437,9 +435,9 @@ totem_videos_summary_new (GrlMediaVideo *video)
   g_return_val_if_fail (source != NULL, NULL);
   self->priv->tvdb_source = source;
 
-  source = grl_registry_lookup_source (registry, "grl-local-metadata");
+  source = grl_registry_lookup_source (registry, "grl-video-title-parsing");
   g_return_val_if_fail (source != NULL, NULL);
-  self->priv->local_metadata_source = source;
+  self->priv->video_title_parsing_source = source;
 
   self->priv->tvdb_poster_key = grl_registry_lookup_metadata_key (registry, "thetvdb-poster");
   self->priv->tmdb_poster_key = grl_registry_lookup_metadata_key (registry, "tmdb-poster");
