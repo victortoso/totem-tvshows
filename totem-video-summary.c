@@ -351,7 +351,7 @@ resolve_by_video_title_parsing_done (GrlSource *source,
   TotemVideosSummary *grid;
 
   if (error != NULL) {
-    g_warning ("local-metadata failed: %s", error->message);
+    g_warning ("video-title-parsing failed: %s", error->message);
     return;
   }
 
@@ -366,8 +366,7 @@ resolve_by_video_title_parsing_done (GrlSource *source,
       totem_videos_summary_set_content (grid);
       resolve_by_tmdb (grid);
   } else {
-    g_warning ("local-metadata can't define it as movie or series: %s",
-               grl_media_get_url (media));
+    g_warning ("video type is not defined: %s", grl_media_get_url (media));
   }
 }
 
@@ -409,11 +408,16 @@ totem_videos_summary_media_init (TotemVideosSummary *grid)
   const gchar *url;
 
   url = grl_media_get_url (GRL_MEDIA (grid->priv->video));
-  if (url == NULL || !g_file_test (url, G_FILE_TEST_EXISTS))
+  if (url == NULL) {
+    g_warning ("Video does not have url: can't initialize totem-video-summary");
     return FALSE;
+  }
 
-  g_print("-----------> '%s'\n", url);
-  g_print("----> '%s'\n", grl_source_get_name(grid->priv->video_title_parsing_source));
+  if (!g_file_test (url, G_FILE_TEST_EXISTS)) {
+    g_warning ("Video file does not exist");
+    return FALSE;
+  }
+
   resolve_by_video_title_parsing (grid);
   return TRUE;
 }
@@ -451,10 +455,8 @@ totem_videos_summary_new (GrlMediaVideo *video)
   g_return_val_if_fail (self->priv->tmdb_poster_key != GRL_METADATA_KEY_INVALID, NULL);
 
   self->priv->video = g_object_ref (video);
-  if (totem_videos_summary_media_init (self) == FALSE) {
-    g_warning ("--> FAIL");
+  if (!totem_videos_summary_media_init (self))
     g_clear_object (&self);
-  }
 
   return self;
 }
@@ -477,12 +479,10 @@ get_data_from_media (GrlData *data,
 
     relkeys = grl_data_get_related_keys (data, key, i);
     element = grl_related_keys_get_string (relkeys, key);
-    g_print ("-----> %s\n", element);
 
     tmp = str;
     str = (str == NULL) ? g_strdup (element) : g_strconcat (str, ", ", element, NULL);
     g_clear_pointer (&tmp, g_free);
   }
-  g_print ("[debug] %s\n", str);
   return str;
 }
