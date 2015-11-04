@@ -1,6 +1,6 @@
 CC=gcc
-LIBS=`pkg-config --libs grilo-0.2 gtk+-3.0 grilo-net-0.2`
-CFLAGS= `pkg-config --cflags grilo-0.2 gtk+-3.0 grilo-net-0.2`
+LIBS=`pkg-config --libs grilo-0.3 gtk+-3.0 grilo-net-0.3`
+CFLAGS= `pkg-config --cflags grilo-0.3 gtk+-3.0 grilo-net-0.3`
 CFLAGS+= -Wall -g -DLOCAL_PATH=\""$(PWD)/"\"
 TARGET=bin
 CCRESOURCES=glib-compile-resources
