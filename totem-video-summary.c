@@ -187,9 +187,10 @@ resolve_metadata_done (GrlSource    *source,
 
   grid = TOTEM_VIDEOS_SUMMARY (user_data);
 
-  title = (grid->priv->is_tv_show) ?
-    grl_media_video_get_show (GRL_MEDIA_VIDEO (media)) :
-    grl_media_get_title (media);
+  if (grid->priv->is_tv_show)
+    title = grl_media_video_get_show (GRL_MEDIA_VIDEO (media));
+  else
+    title = grl_media_get_title (media);
 
   if (title == NULL) {
     g_warning ("Basic information is missing - no title");
