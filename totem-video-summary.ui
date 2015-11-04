@@ -320,7 +320,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="cast-data">
+                      <object class="GtkLabel" id="cast">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">start</property>
