@@ -428,20 +428,7 @@ totem_videos_summary_new (GrlMediaVideo *video)
   registry = grl_registry_get_default();
   self->priv->registry = registry;
 
-  config = grl_config_new ("grl-thetvdb", NULL);
-  grl_config_set_api_key (config, "3F476CEF2FBD0FB0");
-  grl_registry_add_config (registry, config, &error);
-  g_assert_no_error (error);
-
-  config = grl_config_new ("grl-tmdb", NULL);
-  grl_config_set_api_key (config, "719b9b296835b04cd919c4bf5220828a");
-  grl_registry_add_config (registry, config, &error);
-  g_assert_no_error (error);
-
-  /* FIXME: Only load the plugins we need */
-  grl_registry_load_all_plugins (registry, &error);
-  g_assert_no_error (error);
-
+  /* Those plugins should be loaded as requirement */
   source = grl_registry_lookup_source (registry, "grl-tmdb");
   g_return_val_if_fail (source != NULL, NULL);
   self->priv->tmdb_source = source;
