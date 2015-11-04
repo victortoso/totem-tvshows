@@ -145,7 +145,7 @@ totem_videos_summary_set_content (TotemVideosSummary *grid)
       g_object_unref (poster);
 
       /* Clear old image and set new pixbuf to it */
-      gtk_image_clear (grid->priv->poster);
+      //FIXME gtk_image_clear (grid->priv->poster);
       gtk_image_set_from_pixbuf (grid->priv->poster, dstpixbuf);
       g_object_unref (dstpixbuf);
     }
@@ -176,24 +176,8 @@ totem_videos_summary_finalize (GObject *object)
 static void
 totem_videos_summary_init (TotemVideosSummary *self)
 {
-  self->priv = totem_videos_summary_get_instance_private (self);
-
-#if 0
-  GApplication *app;
-  priv = self->priv;
-
-  app = g_application_get_default ();
-
-  priv->renderers_mngr = photos_dlna_renderers_manager_dup_singleton ();
-  priv->remote_mngr = photos_remote_display_manager_dup_singleton ();
-  priv->mode_cntrlr = photos_mode_controller_dup_singleton ();
-
   gtk_widget_init_template (GTK_WIDGET (self));
-
-  gtk_list_box_set_header_func (priv->listbox, photos_dlna_renderers_separator_cb, NULL, NULL);
-
-  g_signal_connect (self, "response", G_CALLBACK (gtk_widget_destroy), NULL);
-#endif
+  self->priv = totem_videos_summary_get_instance_private (self);
 }
 
 static void
@@ -205,7 +189,7 @@ totem_videos_summary_class_init (TotemVideosSummaryClass *class)
   object_class->dispose = totem_videos_summary_dispose;
   object_class->finalize = totem_videos_summary_finalize;
 
-  gtk_widget_class_set_template_from_resource (widget_class, "/org/totem/grilo/totemvideosummary.ui");
+  gtk_widget_class_set_template_from_resource (widget_class, "/org/totem/grilo/totem-video-summary.ui");
   gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, poster);
   gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, title);
   gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, summary);
@@ -362,31 +346,25 @@ resolve_by_local_metadata_done (GrlSource *source,
 {
   TotemVideosSummary *grid;
 
-  if (error != NULL)
-    {
-      g_warning ("local-metadata failed: %s", error->message);
-      return;
-    }
+  if (error != NULL) {
+    g_warning ("local-metadata failed: %s", error->message);
+    return;
+  }
 
   grid = TOTEM_VIDEOS_SUMMARY (user_data);
 
-  if (grl_media_video_get_show (grid->priv->video) != NULL)
-    {
-      grid->priv->is_tv_show = TRUE;
-      totem_videos_summary_set_content (grid);
-      resolve_by_the_tvdb (grid);
-    }
-  else if (grl_media_get_title (media) != NULL)
-    {
+  if (grl_media_video_get_show (GRL_MEDIA_VIDEO(media)) != NULL) {
+    grid->priv->is_tv_show = TRUE;
+    totem_videos_summary_set_content (grid);
+    resolve_by_the_tvdb (grid);
+  } else if (grl_media_get_title (media) != NULL) {
       grid->priv->is_tv_show = FALSE;
       totem_videos_summary_set_content (grid);
       resolve_by_tmdb (grid);
-    }
-  else
-    {
-      g_warning ("local-metadata can't define it as movie or series: %s",
-                 grl_media_get_url (media));
-    }
+  } else {
+    g_warning ("local-metadata can't define it as movie or series: %s",
+               grl_media_get_url (media));
+  }
 }
 
 static void
@@ -430,6 +408,8 @@ totem_videos_summary_media_init (TotemVideosSummary *grid)
   if (url == NULL || !g_file_test (url, G_FILE_TEST_EXISTS))
     return FALSE;
 
+  g_print("-----------> '%s'\n", url);
+  g_print("----> '%s'\n", grl_source_get_name(grid->priv->local_metadata_source));
   resolve_by_local_metadata (grid);
   return TRUE;
 }
@@ -437,15 +417,15 @@ totem_videos_summary_media_init (TotemVideosSummary *grid)
 TotemVideosSummary *
 totem_videos_summary_new (GrlMediaVideo *video)
 {
-  TotemVideosSummary *grid;
+  TotemVideosSummary *self;
   GrlConfig *config;
   GrlSource *source;
   GrlRegistry *registry;
   GError *error = NULL;
 
-  grid = g_object_new (TOTEM_TYPE_VIDEOS_SUMMARY, NULL);
+  self = g_object_new (TOTEM_TYPE_VIDEOS_SUMMARY, NULL);
   registry = grl_registry_get_default();
-  grid->priv->registry = registry;
+  self->priv->registry = registry;
 
   config = grl_config_new ("grl-thetvdb", NULL);
   grl_config_set_api_key (config, "3F476CEF2FBD0FB0");
@@ -463,30 +443,31 @@ totem_videos_summary_new (GrlMediaVideo *video)
 
   source = grl_registry_lookup_source (registry, "grl-tmdb");
   g_return_val_if_fail (source != NULL, NULL);
-  grid->priv->tmdb_source = source;
+  self->priv->tmdb_source = source;
 
   source = grl_registry_lookup_source (registry, "grl-thetvdb");
   g_return_val_if_fail (source != NULL, NULL);
-  grid->priv->tvdb_source = source;
+  self->priv->tvdb_source = source;
 
   source = grl_registry_lookup_source (registry, "grl-local-metadata");
   g_return_val_if_fail (source != NULL, NULL);
-  grid->priv->local_metadata_source = source;
+  self->priv->local_metadata_source = source;
 
-  grid->priv->tvdb_poster_key = grl_registry_lookup_metadata_key (registry, "thetvdb-poster");
-  grid->priv->tmdb_poster_key = grl_registry_lookup_metadata_key (registry, "tmdb-poster");
+  self->priv->tvdb_poster_key = grl_registry_lookup_metadata_key (registry, "thetvdb-poster");
+  self->priv->tmdb_poster_key = grl_registry_lookup_metadata_key (registry, "tmdb-poster");
 
   /* FIXME: Disable movie/series if plugin is not loaded correctly or return NULL in case of
    * all of them. */
-  g_return_val_if_fail (grid->priv->tvdb_poster_key != GRL_METADATA_KEY_INVALID, NULL);
-  g_return_val_if_fail (grid->priv->tmdb_poster_key != GRL_METADATA_KEY_INVALID, NULL);
+  g_return_val_if_fail (self->priv->tvdb_poster_key != GRL_METADATA_KEY_INVALID, NULL);
+  g_return_val_if_fail (self->priv->tmdb_poster_key != GRL_METADATA_KEY_INVALID, NULL);
 
-  grid->priv->video = g_object_ref (video);
-  if (totem_videos_summary_media_init (grid) == FALSE) {
-    g_clear_object (&grid);
+  self->priv->video = g_object_ref (video);
+  if (totem_videos_summary_media_init (self) == FALSE) {
+    g_warning ("--> FAIL");
+    g_clear_object (&self);
   }
 
-  return g_object_ref_sink (grid);
+  return self;
 }
 
 /* For GrlKeys that have several values, return all of them in one
