@@ -51,19 +51,22 @@ gint main(gint argc, gchar *argv[])
     TotemVideosSummary *tvs;
     GrlMediaVideo *video;
     GtkWidget *win;
+    gint i;
 
     gtk_init (&argc, &argv);
     grl_init (&argc, &argv);
 
     setup_grilo();
-
-    video = GRL_MEDIA_VIDEO(grl_media_video_new());
-    grl_media_set_url (GRL_MEDIA (video), videos[0].url);
-    grl_media_set_title (GRL_MEDIA (video), videos[0].title);
-
-    tvs = totem_videos_summary_new (video);
+    tvs = totem_videos_summary_new ();
     g_return_val_if_fail (TOTEM_IS_VIDEOS_SUMMARY (tvs), 1);
-    g_object_unref (video);
+
+    for (i = 0; i < G_N_ELEMENTS (videos); i++) {
+      video = GRL_MEDIA_VIDEO(grl_media_video_new());
+      grl_media_set_url (GRL_MEDIA (video), videos[i].url);
+      grl_media_set_title (GRL_MEDIA (video), videos[i].title);
+      totem_videos_summary_add_video (tvs, video);
+      g_object_unref (video);
+    }
 
     win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), "Totem TVSHOWS");
