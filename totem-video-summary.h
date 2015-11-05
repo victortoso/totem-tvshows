@@ -52,7 +52,7 @@ struct _TotemVideosSummaryClass
 };
 
 GType               totem_videos_summary_get_type           (void) G_GNUC_CONST;
-TotemVideosSummary *totem_videos_summary_new                (GrlMediaVideo *video);
+TotemVideosSummary *totem_videos_summary_new                (void);
 
 G_END_DECLS
 

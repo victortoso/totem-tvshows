@@ -388,7 +388,7 @@ get_data_from_media (GrlData *data,
  * -------------------------------------------------------------------------- */
 
 TotemVideosSummary *
-totem_videos_summary_new (GrlMediaVideo *video)
+totem_videos_summary_new (void)
 {
   TotemVideosSummary *self;
   GrlSource *source;
@@ -418,10 +418,6 @@ totem_videos_summary_new (GrlMediaVideo *video)
    * all of them. */
   g_return_val_if_fail (self->priv->tvdb_poster_key != GRL_METADATA_KEY_INVALID, NULL);
   g_return_val_if_fail (self->priv->tmdb_poster_key != GRL_METADATA_KEY_INVALID, NULL);
-
-  self->priv->video = g_object_ref (video);
-  if (!totem_videos_summary_media_init (self))
-    g_clear_object (&self);
 
   return self;
 }
