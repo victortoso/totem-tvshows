@@ -48,6 +48,7 @@ setup_grilo(void)
 
 gint main(gint argc, gchar *argv[])
 {
+    GtkSettings *gtk_settings;
     TotemVideosSummary *tvs;
     GrlMediaVideo *video;
     GtkWidget *win;
@@ -55,6 +56,9 @@ gint main(gint argc, gchar *argv[])
 
     gtk_init (&argc, &argv);
     grl_init (&argc, &argv);
+
+    gtk_settings = gtk_settings_get_default ();
+    g_object_set (G_OBJECT (gtk_settings), "gtk-application-prefer-dark-theme", TRUE, NULL);
 
     setup_grilo();
     tvs = totem_videos_summary_new ();
