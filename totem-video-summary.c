@@ -432,23 +432,25 @@ get_data_from_media (GrlData *data,
                      GrlKeyID key)
 {
   gint i, len;
-  gchar *str = NULL;
+  GString *s;
 
-  /* FIXME: Use GString instead */
   len = grl_data_length (data, key);
+  if (len <= 0)
+    return NULL;
+
+  s = g_string_new ("");
   for (i = 0; i < len; i++) {
     GrlRelatedKeys *relkeys;
-    gchar *tmp;
     const gchar *element;
 
     relkeys = grl_data_get_related_keys (data, key, i);
     element = grl_related_keys_get_string (relkeys, key);
 
-    tmp = str;
-    str = (str == NULL) ? g_strdup (element) : g_strconcat (str, ", ", element, NULL);
-    g_clear_pointer (&tmp, g_free);
+    if (i > 0)
+      g_string_append (s, ", ");
+    g_string_append (s, element);
   }
-  return str;
+  return g_string_free (s, FALSE);
 }
 
 /* -------------------------------------------------------------------------- *
