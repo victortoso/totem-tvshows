@@ -144,14 +144,13 @@ totem_videos_summary_set_data_content (TotemVideosSummary *self,
     GtkImage *poster;
     GdkPixbuf *srcpixbuf, *dstpixbuf;
 
-    /* Get a scalated pixbuf from img file */
+    /* Get a scaled pixbuf from img file */
     poster = GTK_IMAGE(gtk_image_new_from_file (data->poster_path));
     srcpixbuf = gtk_image_get_pixbuf (poster);
     dstpixbuf = gdk_pixbuf_scale_simple (srcpixbuf, 226, 333, GDK_INTERP_BILINEAR);
     g_object_unref (poster);
 
-    /* Clear old image and set new pixbuf to it */
-    //FIXME gtk_image_clear (self->priv->poster);
+    /* Set new pixbuf */
     gtk_image_set_from_pixbuf (self->priv->poster, dstpixbuf);
     g_object_unref (dstpixbuf);
   }
