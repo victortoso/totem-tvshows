@@ -73,6 +73,7 @@ gint main(gint argc, gchar *argv[])
     }
 
     win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_default_size (GTK_WINDOW (win), 800, 600);
     gtk_window_set_title(GTK_WINDOW(win), "Totem TVSHOWS");
     gtk_container_add (GTK_CONTAINER (win), GTK_WIDGET(tvs));
     gtk_widget_show (GTK_WIDGET(tvs));
