@@ -523,14 +523,6 @@ totem_videos_summary_add_video (TotemVideosSummary *self,
  * -------------------------------------------------------------------------- */
 
 static void
-totem_videos_summary_dispose (GObject *object)
-{
-  //TotemVideosSummary *self = TOTEM_VIDEOS_SUMMARY (object);
-
-  G_OBJECT_CLASS (totem_videos_summary_parent_class)->dispose (object);
-}
-
-static void
 totem_videos_summary_finalize (GObject *object)
 {
   TotemVideosSummary *self = TOTEM_VIDEOS_SUMMARY (object);
@@ -556,7 +548,6 @@ totem_videos_summary_class_init (TotemVideosSummaryClass *class)
   GObjectClass *object_class = G_OBJECT_CLASS (class);
   GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
-  object_class->dispose = totem_videos_summary_dispose;
   object_class->finalize = totem_videos_summary_finalize;
 
   gtk_widget_class_set_template_from_resource (widget_class, "/org/totem/grilo/totem-video-summary.ui");
