@@ -48,11 +48,11 @@ struct _TotemVideosSummaryPrivate
 
 typedef struct
 {
-    TotemVideosSummary *totem_videos_summary;
-    GrlMediaVideo      *video;
+  TotemVideosSummary *totem_videos_summary;
+  GrlMediaVideo      *video;
 
-    gchar    *poster_path;
-    gboolean  is_tv_show;
+  gchar    *poster_path;
+  gboolean  is_tv_show;
 } OperationSpec;
 
 typedef struct
@@ -355,10 +355,10 @@ resolve_by_the_tvdb (OperationSpec *os)
 }
 
 static void
-resolve_by_video_title_parsing_done (GrlSource *source,
-                                     guint operation_id,
-                                     GrlMedia *media,
-                                     gpointer  user_data,
+resolve_by_video_title_parsing_done (GrlSource    *source,
+                                     guint         operation_id,
+                                     GrlMedia     *media,
+                                     gpointer      user_data,
                                      const GError *error)
 {
   TotemVideosSummary *self;
