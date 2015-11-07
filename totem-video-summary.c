@@ -43,6 +43,10 @@ struct _TotemVideosSummaryPrivate
   GtkLabel *directors;
   GtkLabel *authors;
 
+  GtkButton *arrow_right;
+  GtkButton *arrow_left;
+
+  GList *current_video;
   GList *videos;
 };
 
@@ -187,11 +191,61 @@ totem_videos_summary_set_basic_content (TotemVideosSummary *self,
 }
 
 static void
+totem_videos_summary_update_ui (TotemVideosSummary *self)
+{
+  VideoSummaryData *data;
+  gboolean visible;
+
+  if (self->priv->videos == NULL) {
+    g_warning ("Don't have any video to display");
+    return;
+  } else if (self->priv->current_video == NULL) {
+    self->priv->current_video = self->priv->videos;
+  }
+
+  data = self->priv->current_video->data;
+  totem_videos_summary_set_data_content (self, data);
+
+  /* For optimization, list is inverted */
+  visible = (self->priv->current_video->next != NULL);
+  gtk_widget_set_visible (GTK_WIDGET(self->priv->arrow_left), visible);
+
+  visible = (self->priv->current_video->prev != NULL);
+  gtk_widget_set_visible (GTK_WIDGET(self->priv->arrow_right), visible);
+}
+
+static void
+change_video_cb (GtkWidget *button,
+                 gpointer   user_data)
+{
+  TotemVideosSummary *self;
+  const gchar *name;
+  GList *next_video = NULL;
+
+  self = user_data;
+  name = gtk_widget_get_name (button);
+  g_debug ("%s:%d - name is %s", __func__, __LINE__, name);
+
+  /* List is inverted */
+  if (g_str_equal (name, "forward-arrow")) {
+    next_video = g_list_previous (self->priv->current_video);
+    if (!next_video)
+      next_video = g_list_last (self->priv->videos);
+  } else {
+    next_video = g_list_next (self->priv->current_video);
+    if (!next_video)
+      next_video = self->priv->videos;
+  }
+
+  self->priv->current_video = next_video;
+  totem_videos_summary_update_ui (self);
+}
+
+static void
 add_video_to_summary_and_free (OperationSpec *os)
 {
   TotemVideosSummary *self = os->totem_videos_summary;
   VideoSummaryData *data;
-  gboolean is_first = (self->priv->videos == NULL);
 
   data = g_slice_new0 (VideoSummaryData);
   data->is_tv_show = (grl_media_video_get_show (os->video) != NULL);
@@ -211,10 +265,7 @@ add_video_to_summary_and_free (OperationSpec *os)
     data->title = g_strdup (grl_media_get_title (GRL_MEDIA (os->video)));
 
   self->priv->videos = g_list_prepend (self->priv->videos, data);
-
-  if (is_first)
-    totem_videos_summary_set_data_content (self, data);
-
+  totem_videos_summary_update_ui (self);
   operation_spec_free (os);
 }
 
@@ -541,6 +592,9 @@ totem_videos_summary_init (TotemVideosSummary *self)
 {
   gtk_widget_init_template (GTK_WIDGET (self));
   self->priv = totem_videos_summary_get_instance_private (self);
+
+  g_signal_connect (self->priv->arrow_right, "clicked", G_CALLBACK (change_video_cb), self);
+  g_signal_connect (self->priv->arrow_left, "clicked", G_CALLBACK (change_video_cb), self);
 }
 
 static void
@@ -560,4 +614,6 @@ totem_videos_summary_class_init (TotemVideosSummaryClass *class)
   gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, cast);
   gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, directors);
   gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, authors);
+  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, arrow_left);
+  gtk_widget_class_bind_template_child_private (widget_class, TotemVideosSummary, arrow_right);
 }

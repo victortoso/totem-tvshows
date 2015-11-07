@@ -29,9 +29,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="button-right">
+          <object class="GtkButton" id="arrow_right">
+            <property name="name">forward-arrow</property>
             <property name="label">gtk-go-forward</property>
-            <property name="visible">True</property>
+            <property name="visible">False</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="use_stock">True</property>
@@ -44,9 +45,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="button-left">
+          <object class="GtkButton" id="arrow_left">
+            <property name="name">back-arrow</property>
             <property name="label">gtk-go-back</property>
-            <property name="visible">True</property>
+            <property name="visible">False</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="use_stock">True</property>
