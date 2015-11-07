@@ -76,13 +76,13 @@ gint main(gint argc, gchar *argv[])
     }
 
     win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    g_signal_connect (GTK_WINDOW (win), "destroy", G_CALLBACK (gtk_main_quit), NULL);
     gtk_window_set_default_size (GTK_WINDOW (win), 800, 600);
+
     gtk_window_set_title(GTK_WINDOW(win), "Totem TVSHOWS");
     gtk_container_add (GTK_CONTAINER (win), GTK_WIDGET(tvs));
     gtk_widget_show (GTK_WIDGET(tvs));
     gtk_widget_show (win);
     gtk_main ();
-    g_object_unref (tvs);
-    g_object_unref (win);
     return 0;
 }
