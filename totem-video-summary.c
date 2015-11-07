@@ -224,7 +224,6 @@ change_video_cb (GtkWidget *button,
 
   self = user_data;
   name = gtk_widget_get_name (button);
-  g_debug ("%s:%d - name is %s", __func__, __LINE__, name);
 
   /* List is inverted */
   if (g_str_equal (name, "forward-arrow")) {
