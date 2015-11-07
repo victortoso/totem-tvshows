@@ -1,7 +1,7 @@
 CC=gcc
 LIBS=`pkg-config --libs grilo-0.3 gtk+-3.0 grilo-net-0.3`
 CFLAGS= `pkg-config --cflags grilo-0.3 gtk+-3.0 grilo-net-0.3`
-CFLAGS+= -Wall -g -DLOCAL_PATH=\""$(PWD)/"\"
+CFLAGS+= -Wall -g -DLOCAL_PATH=\""$(PWD)/data_samples/"\"
 TARGET=bin
 CCRESOURCES=glib-compile-resources
 

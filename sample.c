@@ -8,7 +8,10 @@ struct {
     int season;
     int episode;
 } videos[] = {
+    /* Series */
     { LOCAL_PATH "House.S01E01.mkv", "House.S01E01.mkv", NULL, 1, 1 },
+    { LOCAL_PATH "Breaking.Bad.S01E01.mkv", "Breaking.Bad.S01E01.mkv", NULL, 1, 1 },
+    { LOCAL_PATH "Limitless.S01E01.mkv", "Limitless.S01E01.mkv", NULL, 1, 1 }
 };
 
 #define THETVDB_ID  "grl-thetvdb"
