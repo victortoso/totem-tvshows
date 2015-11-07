@@ -68,6 +68,7 @@ typedef struct
   gchar    *director;
   gchar    *author;
   gchar    *poster_path;
+  gchar    *publication_date;
   gboolean  is_tv_show;
 } VideoSummaryData;
 
@@ -102,6 +103,7 @@ video_summary_data_free (gpointer gp)
   g_free (data->director);
   g_free (data->author);
   g_free (data->poster_path);
+  g_free (data->publication_date);
   g_slice_free (VideoSummaryData, data);
 }
 
@@ -169,19 +171,12 @@ totem_videos_summary_set_data_content (TotemVideosSummary *self,
     gtk_image_clear (self->priv->poster);
   }
 
-  /*
-  date = grl_media_get_publication_date (GRL_MEDIA (video));
-  if (released != NULL) {
-    str = g_date_time_format (released, "%Y");
-    if (str != NULL) {
-      gtk_label_set_text (self->priv->released, str);
-      g_free (str);
-    }
-    gtk_widget_set_visible (GTK_WIDGET(self->priv->released), (str != NULL));
+  if (data->publication_date) {
+    gtk_label_set_text (self->priv->released, data->publication_date);
+    gtk_widget_set_visible (GTK_WIDGET(self->priv->released), TRUE);
   } else {
     gtk_widget_set_visible (GTK_WIDGET(self->priv->released), FALSE);
   }
-  */
 }
 
 static void
@@ -255,6 +250,7 @@ add_video_to_summary_and_free (OperationSpec *os)
 {
   TotemVideosSummary *self = os->totem_videos_summary;
   VideoSummaryData *data;
+  GDateTime *released;
 
   data = g_slice_new0 (VideoSummaryData);
   data->is_tv_show = (grl_media_video_get_show (os->video) != NULL);
@@ -267,6 +263,10 @@ add_video_to_summary_and_free (OperationSpec *os)
   data->author = get_data_from_media (GRL_DATA (os->video),
                                       GRL_METADATA_KEY_AUTHOR);
   data->poster_path = g_strdup (os->poster_path);
+
+  released = grl_media_get_publication_date(GRL_MEDIA(os->video));
+  if (released)
+    data->publication_date = g_date_time_format (released, "%F");
 
   if (data->is_tv_show)
     data->title = g_strdup (grl_media_video_get_episode_title (os->video));
