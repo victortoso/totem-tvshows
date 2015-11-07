@@ -71,6 +71,9 @@ typedef struct
   gboolean  is_tv_show;
 } VideoSummaryData;
 
+#define POSTER_WIDTH  266
+#define POSTER_HEIGHT 333
+
 static gchar *get_data_from_media (GrlData *data, GrlKeyID key);
 
 G_DEFINE_TYPE_WITH_PRIVATE (TotemVideosSummary, totem_videos_summary, GTK_TYPE_GRID);
@@ -144,19 +147,26 @@ totem_videos_summary_set_data_content (TotemVideosSummary *self,
     gtk_widget_set_visible (GTK_WIDGET(self->priv->authors), FALSE);
   }
 
-  if (data->poster_path != NULL) {
-    GtkImage *poster;
-    GdkPixbuf *srcpixbuf, *dstpixbuf;
+  if (data->poster_path) {
+    GError *error = NULL;
+    GdkPixbuf *pixbuf;
 
-    /* Get a scaled pixbuf from img file */
-    poster = GTK_IMAGE(gtk_image_new_from_file (data->poster_path));
-    srcpixbuf = gtk_image_get_pixbuf (poster);
-    dstpixbuf = gdk_pixbuf_scale_simple (srcpixbuf, 226, 333, GDK_INTERP_BILINEAR);
-    g_object_unref (poster);
-
-    /* Set new pixbuf */
-    gtk_image_set_from_pixbuf (self->priv->poster, dstpixbuf);
-    g_object_unref (dstpixbuf);
+    pixbuf = gdk_pixbuf_new_from_file_at_scale (data->poster_path,
+                                                POSTER_WIDTH,
+                                                POSTER_HEIGHT,
+                                                TRUE,
+                                                &error);
+    if (error != NULL) {
+      g_warning ("no poster due: %s", error->message);
+      g_error_free (error);
+      gtk_image_clear (self->priv->poster);
+    } else {
+      gtk_image_set_from_pixbuf (self->priv->poster, pixbuf);
+      g_object_unref (pixbuf);
+    }
+  } else {
+    /* FIXME: Maybe a "No poster" image can be displayed instead */
+    gtk_image_clear (self->priv->poster);
   }
 
   /*
