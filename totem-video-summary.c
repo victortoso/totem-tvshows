@@ -53,7 +53,7 @@ struct _TotemVideosSummaryPrivate
 typedef struct
 {
   TotemVideosSummary *totem_videos_summary;
-  GrlMediaVideo      *video;
+  GrlMedia           *video;
 
   gchar    *poster_path;
   gboolean  is_tv_show;
@@ -181,15 +181,15 @@ totem_videos_summary_set_data_content (TotemVideosSummary *self,
 
 static void
 totem_videos_summary_set_basic_content (TotemVideosSummary *self,
-                                        GrlMediaVideo      *video)
+                                        GrlMedia           *video)
 {
   const gchar *title;
-  gboolean is_tv_show = (grl_media_video_get_show (video) != NULL);
+  gboolean is_tv_show = (grl_media_get_show (video) != NULL);
 
   if (is_tv_show)
-    title = grl_media_video_get_episode_title (video);
+    title = grl_media_get_episode_title (video);
   else
-    title = grl_media_get_title (GRL_MEDIA (video));
+    title = grl_media_get_title (video);
 
   if (title)
     gtk_label_set_text (self->priv->title, title);
@@ -253,8 +253,8 @@ add_video_to_summary_and_free (OperationSpec *os)
   GDateTime *released;
 
   data = g_slice_new0 (VideoSummaryData);
-  data->is_tv_show = (grl_media_video_get_show (os->video) != NULL);
-  data->description = g_strdup (grl_media_get_description (GRL_MEDIA (os->video)));
+  data->is_tv_show = (grl_media_get_show (os->video) != NULL);
+  data->description = g_strdup (grl_media_get_description (os->video));
   data->genre = get_data_from_media (GRL_DATA (os->video), GRL_METADATA_KEY_GENRE);
   data->performer = get_data_from_media (GRL_DATA (os->video),
                                          GRL_METADATA_KEY_PERFORMER);
@@ -264,14 +264,14 @@ add_video_to_summary_and_free (OperationSpec *os)
                                       GRL_METADATA_KEY_AUTHOR);
   data->poster_path = g_strdup (os->poster_path);
 
-  released = grl_media_get_publication_date(GRL_MEDIA(os->video));
+  released = grl_media_get_publication_date (os->video);
   if (released)
     data->publication_date = g_date_time_format (released, "%F");
 
   if (data->is_tv_show)
-    data->title = g_strdup (grl_media_video_get_episode_title (os->video));
+    data->title = g_strdup (grl_media_get_episode_title (os->video));
   else
-    data->title = g_strdup (grl_media_get_title (GRL_MEDIA (os->video)));
+    data->title = g_strdup (grl_media_get_title (os->video));
 
   self->priv->videos = g_list_prepend (self->priv->videos, data);
   totem_videos_summary_update_ui (self);
@@ -322,7 +322,7 @@ resolve_metadata_done (GrlSource    *source,
   self = os->totem_videos_summary;
 
   if (os->is_tv_show)
-    title = grl_media_video_get_show (GRL_MEDIA_VIDEO (media));
+    title = grl_media_get_show (media);
   else
     title = grl_media_get_title (media);
 
@@ -373,7 +373,7 @@ resolve_by_tmdb (OperationSpec *os)
                                     self->priv->tmdb_poster_key,
                                     GRL_METADATA_KEY_INVALID);
   grl_source_resolve (self->priv->tmdb_source,
-                      GRL_MEDIA (os->video),
+                      os->video,
                       keys,
                       options,
                       resolve_metadata_done,
@@ -405,7 +405,7 @@ resolve_by_the_tvdb (OperationSpec *os)
                                     self->priv->tvdb_poster_key,
                                     GRL_METADATA_KEY_INVALID);
   grl_source_resolve (self->priv->tvdb_source,
-                      GRL_MEDIA (os->video),
+                      os->video,
                       keys,
                       options,
                       resolve_metadata_done,
@@ -432,7 +432,7 @@ resolve_by_video_title_parsing_done (GrlSource    *source,
 
   self = os->totem_videos_summary;
 
-  if (grl_media_video_get_show (GRL_MEDIA_VIDEO(media)) != NULL) {
+  if (grl_media_get_show (media) != NULL) {
     os->is_tv_show = TRUE;
     totem_videos_summary_set_basic_content (self, os->video);
     resolve_by_the_tvdb (os);
@@ -475,7 +475,7 @@ resolve_by_video_title_parsing (OperationSpec *os)
                         GRL_METADATA_KEY_TITLE_FROM_FILENAME,
                         TRUE);
   grl_source_resolve (self->priv->video_title_parsing_source,
-                      GRL_MEDIA (os->video),
+                      os->video,
                       keys,
                       options,
                       resolve_by_video_title_parsing_done,
@@ -553,7 +553,7 @@ totem_videos_summary_new (void)
 
 gboolean
 totem_videos_summary_add_video (TotemVideosSummary *self,
-                                GrlMediaVideo      *video)
+                                GrlMedia           *video)
 {
   const gchar *url;
   OperationSpec *os;
@@ -561,7 +561,7 @@ totem_videos_summary_add_video (TotemVideosSummary *self,
   g_return_val_if_fail (TOTEM_IS_VIDEOS_SUMMARY (self), FALSE);
   g_return_val_if_fail (video != NULL, FALSE);
 
-  url = grl_media_get_url (GRL_MEDIA (video));
+  url = grl_media_get_url (video);
   if (url == NULL) {
     g_warning ("Video does not have url: can't initialize totem-video-summary");
     return FALSE;

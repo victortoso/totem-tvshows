@@ -32,28 +32,31 @@ setup_grilo(void)
   registry = grl_registry_get_default ();
 
   /* For metadata in the filename */
-  grl_registry_load_plugin_by_id (registry, LUA_FACTORY_ID, &error);
+  grl_registry_load_all_plugins (registry, FALSE, &error);
 
   /* For Movies and Series */
   config = grl_config_new (THETVDB_ID, NULL);
   grl_config_set_api_key (config, THETVDB_KEY);
   grl_registry_add_config (registry, config, &error);
   g_assert_no_error (error);
-  grl_registry_load_plugin_by_id (registry, THETVDB_ID, &error);
+  grl_registry_activate_plugin_by_id (registry, THETVDB_ID, &error);
   g_assert_no_error (error);
 
   config = grl_config_new (TMDB_ID, NULL);
   grl_config_set_api_key (config, TMDB_KEY);
   grl_registry_add_config (registry, config, &error);
-  grl_registry_load_plugin_by_id (registry, TMDB_ID, &error);
+  grl_registry_activate_plugin_by_id (registry, TMDB_ID, &error);
   g_assert_no_error (error);
+
+  /* On lua-factory we use grl-video-title-parsing source */
+  grl_registry_activate_plugin_by_id (registry, LUA_FACTORY_ID, &error);
 }
 
 gint main(gint argc, gchar *argv[])
 {
     GtkSettings *gtk_settings;
     TotemVideosSummary *tvs;
-    GrlMediaVideo *video;
+    GrlMedia *video;
     GtkWidget *win;
     gint i;
 
@@ -68,9 +71,9 @@ gint main(gint argc, gchar *argv[])
     g_return_val_if_fail (TOTEM_IS_VIDEOS_SUMMARY (tvs), 1);
 
     for (i = 0; i < G_N_ELEMENTS (videos); i++) {
-      video = GRL_MEDIA_VIDEO(grl_media_video_new());
-      grl_media_set_url (GRL_MEDIA (video), videos[i].url);
-      grl_media_set_title (GRL_MEDIA (video), videos[i].title);
+      video = grl_media_video_new();
+      grl_media_set_url (video, videos[i].url);
+      grl_media_set_title (video, videos[i].title);
       totem_videos_summary_add_video (tvs, video);
       g_object_unref (video);
     }
